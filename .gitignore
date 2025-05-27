@@ -8,6 +8,8 @@
 *.a
 build/
 dist/
+chordlock_cli
+test_chordlock
 
 # Editor directories and files
 .vscode/*
