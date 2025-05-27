@@ -9,12 +9,18 @@ loadChordlockModule().then((Module) => {
 	
 	// ONコード検知のトグル処理
 	const onChordToggle = document.getElementById('onChordToggle');
-	onChordToggle.addEventListener('change', () => {
-		onChordDetection = onChordToggle.checked;
+	if (Module._setOnChordDetection) {
+		onChordToggle.addEventListener('change', () => {
+			onChordDetection = onChordToggle.checked;
+			Module._setOnChordDetection(onChordDetection);
+		});
+		// 初期化
 		Module._setOnChordDetection(onChordDetection);
-	});
-	// 初期化
-	Module._setOnChordDetection(onChordDetection);
+	} else {
+		console.warn('setOnChordDetection function not available in WASM module');
+		// Hide the toggle if function is not available
+		onChordToggle.parentElement.style.display = 'none';
+	}
 
 	function remap(note) {
 		if (note < startNote || note >= endNote) return startNote + (note % 12);

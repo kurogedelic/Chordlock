@@ -5,6 +5,12 @@
 #include <vector>
 #include <unordered_map>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#else
+#define EMSCRIPTEN_KEEPALIVE
+#endif
+
 Chordlock::Chordlock()
     : chordPatterns(getChordPatternsData()) // ← 追加
 {
@@ -800,28 +806,36 @@ static Chordlock chordlock;
 
 // WASMバインディング
 extern "C" {
+EMSCRIPTEN_KEEPALIVE
 void noteOn(uint8_t note, double time_ms) {
   chordlock.noteOn(note, (uint32_t)time_ms);
 }
 
+EMSCRIPTEN_KEEPALIVE
 void noteOff(uint8_t note) { chordlock.noteOff(note); }
 
+EMSCRIPTEN_KEEPALIVE
 void setVelocity(uint8_t note, uint8_t velocity) {
   chordlock.setVelocity(note, velocity);
 }
 
+EMSCRIPTEN_KEEPALIVE
 void setVelocitySensitivity(bool enabled) {
   chordlock.setVelocitySensitivity(enabled);
 }
 
+EMSCRIPTEN_KEEPALIVE
 void setOnChordDetection(bool enabled) {
   chordlock.setOnChordDetection(enabled);
 }
 
+EMSCRIPTEN_KEEPALIVE
 void setKey(uint8_t key) { chordlock.setKey(key); }
 
+EMSCRIPTEN_KEEPALIVE
 void reset() { chordlock.reset(); }
 
+EMSCRIPTEN_KEEPALIVE
 const char *detect(double now_ms) {
   static std::string result;
   auto candidate = chordlock.detect((uint32_t)now_ms);
@@ -830,8 +844,10 @@ const char *detect(double now_ms) {
 }
 
 // detectChord関数を追加（detectのエイリアス）
+EMSCRIPTEN_KEEPALIVE
 const char *detectChord(double now_ms) { return detect(now_ms); }
 
+EMSCRIPTEN_KEEPALIVE
 const char *detectWithConfidence(double now_ms, float *confidence_out) {
   static std::string result;
   auto candidate = chordlock.detect((uint32_t)now_ms);
@@ -840,6 +856,7 @@ const char *detectWithConfidence(double now_ms, float *confidence_out) {
   return result.c_str();
 }
 
+EMSCRIPTEN_KEEPALIVE
 int detectAlternatives(double now_ms, char **results, float *confidences,
                        int maxResults) {
   auto candidates = chordlock.detectAlternatives((uint32_t)now_ms, maxResults);
@@ -858,6 +875,7 @@ int detectAlternatives(double now_ms, char **results, float *confidences,
 }
 
 // 拡張API
+EMSCRIPTEN_KEEPALIVE
 bool detectExtended(double now_ms, char **chordName, bool *isValidChord,
                     char **notes, int *notesCount, char **alternatives,
                     float *altConfidences, int *altCount) {
@@ -895,6 +913,7 @@ bool detectExtended(double now_ms, char **chordName, bool *isValidChord,
 }
 
 // ルート音とベース音を取得
+EMSCRIPTEN_KEEPALIVE
 void getChordRootAndBass(double now_ms, int *root, int *bass) {
   auto extResult = chordlock.detectExtended((uint32_t)now_ms);
   *root = extResult.root;
