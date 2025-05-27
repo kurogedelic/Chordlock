@@ -2,7 +2,8 @@
 
 Real-time MIDI chord detection library with WebAssembly support.
 
-![Uploading D92660A6-DB2F-4A27-A5BB-F129FA7040A8.png…]()
+![D92660A6-DB2F-4A27-A5BB-F129FA7040A8](https://github.com/user-attachments/assets/6c6de291-e344-41aa-bd8e-c4a217b9c10f)
+
 
 
 ## Demo
