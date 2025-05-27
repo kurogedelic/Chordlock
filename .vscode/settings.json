@@ -1,0 +1,7 @@
+{
+	"files.associations": {
+		"*.embeddedhtml": "html",
+		"__locale": "cpp",
+		"unordered_map": "cpp"
+	}
+}
