@@ -17,6 +17,8 @@ https://kurogedelic.github.io/Chordlock/
 - Slash chord detection
 - WebAssembly for browser support
 - Consistent chord notation
+- Direct note number input for chord analysis
+- File-based batch processing
 
 ## Usage
 
@@ -32,7 +34,7 @@ Build and run the CLI version:
 # Build the CLI
 ./build_cli.sh
 
-# Run with MIDI input
+# Run with MIDI input (real-time)
 ./chordlock_cli
 
 # Run without slash chord detection
@@ -40,6 +42,32 @@ Build and run the CLI version:
 
 # Run with velocity sensitivity
 ./chordlock_cli --velocity
+
+# Analyze specific notes directly
+./chordlock_cli -N 60,64,67          # C major chord
+./chordlock_cli -N "[60, 63, 67]"    # C minor chord
+
+# Process multiple chords from file
+./chordlock_cli -f chords.txt
+```
+
+#### CLI Options
+
+- `-n, --no-slash` - Disable slash chord detection
+- `-v, --velocity` - Enable velocity sensitivity
+- `-N, --notes <notes>` - Analyze specific notes (e.g., "60,64,67" or "[60,64,67]")
+- `-f, --file <filename>` - Read notes from file (one set per line)
+- `-h, --help` - Show help message
+
+#### File Format
+
+Create a text file with note numbers (0-127), one chord per line:
+
+```
+# This is a comment
+60,64,67        # C major
+60,63,67        # C minor
+67,71,74,77     # G7
 ```
 
 ### Test Program
