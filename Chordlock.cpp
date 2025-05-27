@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <unordered_map>
 
 Chordlock::Chordlock()
     : chordPatterns(getChordPatternsData()) // ← 追加
@@ -33,23 +34,32 @@ void Chordlock::reset() {
 }
 
 uint16_t Chordlock::buildChordMask() {
+  // 事前計算されたビットマスクを使用
+  static const uint16_t noteMasks[12] = {
+    1 << 0, 1 << 1, 1 << 2, 1 << 3, 1 << 4, 1 << 5,
+    1 << 6, 1 << 7, 1 << 8, 1 << 9, 1 << 10, 1 << 11
+  };
+  
   uint16_t mask = 0;
 
   // ベロシティ考慮が無効な場合は単純に押されているノートをマスクに追加
   if (!velocitySensitive) {
     for (int i = 0; i < 128; ++i) {
       if (noteStates[i]) {
-        mask |= (1 << (i % 12));
+        mask |= noteMasks[i % 12];
       }
     }
     return mask;
   }
 
   // ベロシティ考慮が有効な場合は、強く押されたノートを優先
+  // 事前にソートされた配列を使用
   std::vector<std::pair<int, uint8_t>> activeNotes;
+  activeNotes.reserve(12); // 最大12音
+  
   for (int i = 0; i < 128; ++i) {
     if (noteStates[i]) {
-      activeNotes.push_back({i, velocities[i]});
+      activeNotes.push_back({i % 12, velocities[i]});
     }
   }
 
@@ -59,7 +69,7 @@ uint16_t Chordlock::buildChordMask() {
 
   // マスクに追加
   for (const auto &[note, velocity] : activeNotes) {
-    mask |= (1 << (note % 12));
+    mask |= noteMasks[note];
   }
 
   return mask;
@@ -72,20 +82,37 @@ std::string Chordlock::formatChordName(int root, const std::string &type,
                                 "F#", "G",  "G#", "A",  "A#", "B"};
   std::string rootName = names[root % 12];
 
-  // Logic Pro風のコード表記に変換
+  // 表記の一貫性を確保するマッピングテーブル
+  static const std::unordered_map<std::string, std::string> typeMap = {
+    {"maj", ""},      // メジャーは記号なし
+    {"min", "m"},     // マイナーはmに統一
+    {"maj7", "M7"},   // メジャー7はM7に統一
+    {"min7", "m7"},   // マイナー7はm7に統一
+    {"7", "7"},       // ドミナント7はそのまま
+    {"dim", "dim"},   // ディミニッシュはそのまま
+    {"aug", "aug"},   // オーギュメントはそのまま
+    {"sus2", "sus2"}, // サスペンデッド2はそのまま
+    {"sus4", "sus4"}, // サスペンデッド4はそのまま
+    {"6", "6"},       // 6thはそのまま
+    {"min6", "m6"},   // マイナー6はm6に統一
+    {"9", "9"},       // 9thはそのまま
+    {"min9", "m9"},   // マイナー9はm9に統一
+    {"maj9", "M9"},   // メジャー9はM9に統一
+    {"11", "11"},     // 11thはそのまま
+    {"min11", "m11"}, // マイナー11はm11に統一
+    {"13", "13"},     // 13thはそのまま
+    {"min13", "m13"}, // マイナー13はm13に統一
+    {"add9", "add9"}, // add9はそのまま
+    {"add11", "add11"}, // add11はそのまま
+    {"5", "5"}        // パワーコードはそのまま
+  };
+
+  // 表記を変換
   std::string formattedType = type;
-
-  // マイナーコードの表記を "min" から "m" に変更
-  if (formattedType == "min")
-    formattedType = "m";
-
-  // メジャーコードの表記を "maj" から "" に変更（ただしmaj7などは除く）
-  if (formattedType == "maj")
-    formattedType = "maj";
-
-  // 7thコードの表記を調整
-  if (formattedType == "maj7")
-    formattedType = "M7";
+  auto it = typeMap.find(type);
+  if (it != typeMap.end()) {
+    formattedType = it->second;
+  }
 
   // 結合
   std::string name = rootName + formattedType;
@@ -265,6 +292,151 @@ float Chordlock::adjustConfidenceByProgression(int root,
   }
 
   return adjustment;
+}
+
+// ONコード検出の改善
+float Chordlock::evaluateOnChord(int root, const std::string &type, int bass, uint16_t mask) {
+  if (bass < 0 || bass == root) return 1.0f;
+  
+  // ベース音がコードの構成音かチェック
+  uint16_t chordMask = 0;
+  for (const auto &pattern : chordPatterns) {
+    if (pattern.name == type) {
+      chordMask = ((pattern.pattern << root) | (pattern.pattern >> (12 - root))) & 0xFFF;
+      break;
+    }
+  }
+  
+  bool bassIsChordTone = (chordMask & (1 << bass)) != 0;
+  
+  // ONコードの種類に基づく調整
+  if (bassIsChordTone) {
+    // ベース音がコードの構成音の場合は転回形
+    
+    // 第3音がベース（例：C/E）
+    if (type == "" && bass == (root + 4) % 12) {
+      return 2.0f; // 第1転回形は非常に一般的
+    }
+    
+    // 第5音がベース（例：C/G）
+    if (type == "" && bass == (root + 7) % 12) {
+      return 1.8f; // 第2転回形も一般的
+    }
+    
+    // マイナーコードの第3音がベース（例：Cm/Eb）
+    if (type == "m" && bass == (root + 3) % 12) {
+      return 2.0f; // マイナーの第1転回形
+    }
+    
+    // 7thコードの第3音がベース（例：C7/E）
+    if (type == "7" && bass == (root + 4) % 12) {
+      return 1.9f;
+    }
+    
+    // 7thコードの第5音がベース（例：C7/G）
+    if (type == "7" && bass == (root + 7) % 12) {
+      return 1.8f;
+    }
+    
+    // 7thコードの第7音がベース（例：C7/Bb）
+    if (type == "7" && bass == (root + 10) % 12) {
+      return 1.7f;
+    }
+    
+    return 1.6f; // その他の転回形
+  } else {
+    // ベース音がコードの構成音でない場合
+    
+    // 4度上のルートがベース（例：G7/C）- 特にV7/Iは非常に一般的
+    if (type.find("7") != std::string::npos && (root - bass + 12) % 12 == 5) {
+      return 1.9f;
+    }
+    
+    // 短2度上の音がベース（例：C/Db）- テンション的な効果
+    if ((bass - root + 12) % 12 == 1) {
+      return 1.3f;
+    }
+    
+    // 長2度上の音がベース（例：C/D）- sus9的な効果
+    if ((bass - root + 12) % 12 == 2) {
+      return 1.4f;
+    }
+    
+    // その他のONコード
+    return 1.2f;
+  }
+}
+
+// テンションノートの検出を改善
+void Chordlock::analyzeTensions(uint16_t mask, int root, std::string &type) {
+  // 基本コードの構成音を除外
+  uint16_t baseChordMask = 0;
+  for (const auto &pattern : chordPatterns) {
+    if (pattern.name == type) {
+      baseChordMask = ((pattern.pattern << root) | (pattern.pattern >> (12 - root))) & 0xFFF;
+      break;
+    }
+  }
+  
+  // 残りの音をテンションとして分析
+  uint16_t tensionMask = mask & ~baseChordMask;
+  if (tensionMask == 0) return;
+  
+  // 9th (2nd + オクターブ)
+  if (tensionMask & (1 << ((root + 2) % 12))) {
+    if (type.find("9") == std::string::npos) {
+      // 7thコードの場合は9thに、それ以外はadd9に
+      if (type.find("7") != std::string::npos || type.find("M7") != std::string::npos) {
+        // 既に7thコードの場合、9thに拡張
+        if (type == "7") type = "9";
+        else if (type == "m7") type = "m9";
+        else if (type == "M7") type = "M9";
+        // その他の7thコードはそのまま+9
+        else type += "9";
+      } else {
+        type += "add9";
+      }
+    }
+  }
+  
+  // 11th (4th + オクターブ)
+  if (tensionMask & (1 << ((root + 5) % 12))) {
+    if (type.find("11") == std::string::npos && type.find("sus4") == std::string::npos) {
+      // 9thコードの場合は11thに、7thコードの場合は11に、それ以外はadd11に
+      if (type.find("9") != std::string::npos) {
+        // 9thから11thへ
+        if (type == "9") type = "11";
+        else if (type == "m9") type = "m11";
+        else type += "11";
+      } else if (type.find("7") != std::string::npos || type.find("M7") != std::string::npos) {
+        type += "11";
+      } else {
+        type += "add11";
+      }
+    }
+  }
+  
+  // 13th (6th + オクターブ)
+  if (tensionMask & (1 << ((root + 9) % 12))) {
+    if (type.find("13") == std::string::npos && type.find("6") == std::string::npos) {
+      // 11thコードの場合は13thに、9th/7thコードの場合は13に、それ以外は6に
+      if (type.find("11") != std::string::npos) {
+        // 11thから13thへ
+        if (type == "11") type = "13";
+        else if (type == "m11") type = "m13";
+        else type += "13";
+      } else if (type.find("9") != std::string::npos || 
+                type.find("7") != std::string::npos || 
+                type.find("M7") != std::string::npos) {
+        type += "13";
+      } else {
+        // 基本コードの場合は6th
+        if (type == "") type = "6";
+        else if (type == "m") type = "m6";
+        else type += "6";
+      }
+    }
+  }
 }
 
 ChordCandidate Chordlock::detect(uint32_t now_ms) {
@@ -448,19 +620,17 @@ ChordCandidate Chordlock::detect(uint32_t now_ms) {
         // 7. コード進行パターンに基づく確信度調整
         confidence *= adjustConfidenceByProgression(root, pattern.name);
 
+        // 8. テンションノートの検出
+        std::string typeWithTensions = pattern.name;
+        analyzeTensions(mask, root, typeWithTensions);
+
         // コード名を生成
-        std::string name = formatChordName(root, pattern.name,
+        std::string name = formatChordName(root, typeWithTensions,
                                            root != bassNote ? bassNote : -1);
 
-        // ONコードの場合は信頼度を少し下げる
-        if (bassNote >= 0 && root != bassNote) {
-          // ベース音がコードの構成音かチェック
-          bool bassIsChordTone = (shifted & (1 << bassNote)) != 0;
-
-          // ONコードの場合は信頼度を少し下げる
-          if (!bassIsChordTone) {
-            confidence *= 0.85f;
-          }
+        // ONコードの評価を改善
+        if (detectOnChords && bassNote >= 0) {
+          confidence *= evaluateOnChord(root, pattern.name, bassNote, mask);
         }
 
         candidates.push_back({name, mask, confidence});

@@ -76,4 +76,10 @@ private:
 
   // コード進行の一般的なパターンに基づく確信度調整
   float adjustConfidenceByProgression(int root, const std::string &type);
+  
+  // ONコード評価関数
+  float evaluateOnChord(int root, const std::string &type, int bass, uint16_t mask);
+  
+  // テンションノート検出
+  void analyzeTensions(uint16_t mask, int root, std::string &type);
 };
