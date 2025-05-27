@@ -1,8 +1,8 @@
 # Chordlock
 
-Real-time MIDI chord detection library with WebAssembly support.
+the chords detective.
 
-![D92660A6-DB2F-4A27-A5BB-F129FA7040A8](https://github.com/user-attachments/assets/6c6de291-e344-41aa-bd8e-c4a217b9c10f)
+![Chordlock_m](https://github.com/user-attachments/assets/477aea18-f064-417e-8a6c-e11dfe203c44)
 
 
 
