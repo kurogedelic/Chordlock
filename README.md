@@ -1,4 +1,4 @@
-# Chordlock v3
+# [Chordlock](https://kurogedelic.github.io/Chordlock/)
 
 **Real-time chord detection engine built with modern C++17**
 
