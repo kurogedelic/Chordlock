@@ -1,0 +1,246 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #fff;
+    color: #000;
+    line-height: 1.4;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 40px;
+    align-items: start;
+}
+
+.left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+@media (max-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+.chord-display {
+    text-align: center;
+    padding: 40px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.chord-name {
+    font-size: 3rem;
+    font-weight: 200;
+    color: #000;
+    margin-bottom: 8px;
+}
+
+.chord-info {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.midi-controls {
+}
+
+.midi-controls h3 {
+    font-weight: 300;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    background: #fff;
+    font-size: 13px;
+}
+
+.piano-container {
+}
+
+.piano-keyboard {
+    position: relative;
+    height: 160px;
+    width: 574px;
+    margin: 0 auto;
+}
+
+.key {
+    cursor: pointer;
+    transition: all 0.1s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    font-size: 10px;
+    user-select: none;
+}
+
+.white-key {
+    width: 40px;
+    height: 160px;
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #999;
+    padding-bottom: 8px;
+    position: relative;
+}
+
+.white-key.active::before {
+    content: '';
+    position: absolute;
+    bottom: 18px; /* 音名のすぐ上に配置 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: #000;
+    border-radius: 50%;
+}
+
+.black-key {
+    width: 24px;
+    height: 100px;
+    background: #000;
+    position: absolute;
+    z-index: 2;
+    color: #666;
+    padding-bottom: 8px;
+}
+
+.black-key.active::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.stats {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.stats h3 {
+    font-weight: 300;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 20px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: #000;
+}
+
+.loading {
+    text-align: center;
+    padding: 100px 20px;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.candidates-display {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+    height: 200px; /* Fixed height for 5 rows */
+    overflow: hidden;
+}
+
+.candidates-display h3 {
+    font-weight: 300;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.candidates-list {
+    height: 140px; /* Space for exactly 5 candidates */
+    overflow-y: auto;
+    border: 1px solid #f0f0f0;
+    border-radius: 4px;
+}
+
+.candidate-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f5f5f5;
+    min-height: 30px;
+}
+
+.candidate-item:last-child {
+    border-bottom: none;
+}
+
+.candidate-name {
+    font-weight: 400;
+    font-size: 1rem;
+}
+
+.candidate-details {
+    font-size: 0.75rem;
+    color: #888;
+    text-align: right;
+}
+
+.candidate-type {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    font-size: 0.7rem;
+}

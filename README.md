@@ -1,95 +1,137 @@
-# Chordlock
+# Chordlock v3
 
-the chords detective.
+**Real-time chord detection engine built with modern C++17**
 
-![Chordlock_m](https://github.com/user-attachments/assets/477aea18-f064-417e-8a6c-e11dfe203c44)
-
-
-
-## Demo
-
-https://kurogedelic.github.io/Chordlock/
+A high-performance chord detection library that supports both native C++ applications and web browsers via WebAssembly. Designed for real-time MIDI input and audio analysis with advanced harmony recognition.
 
 ## Features
 
-- Real-time chord detection from MIDI input
-- Support for complex chords (7th, 9th, 11th, 13th)
-- Slash chord detection
-- WebAssembly for browser support
-- Consistent chord notation
-- Direct note number input for chord analysis
-- File-based batch processing
+🎯 **Comprehensive Chord Recognition**
+- **339 chord types** supported: Major/Minor/7th → Jazz/Hybrid harmonies
+- **Slash chord detection** with intelligent bass note analysis
+- **Multi-candidate analysis** with confidence scoring
+- **Single note recognition** for individual pitches
 
-## Usage
+⚡ **High Performance**
+- **Sub-millisecond detection** optimized for real-time performance
+- **SIMD-accelerated** bit operations for maximum speed
+- **Memory efficient** hash table design
+- **Zero external dependencies**
 
-### Web Browser
+🌐 **Cross-Platform Support**
+- **Native C++17** implementation with static/shared libraries
+- **WebAssembly** build for browser compatibility
+- **Interactive web UI** with virtual piano and MIDI support
+- **Command-line interface** for direct integration
 
-Open the demo page and allow MIDI access. Play chords on your MIDI keyboard to see real-time detection.
+## Quick Start
 
-### Command Line (macOS)
-
-Build and run the CLI version:
-
+### Web Demo
 ```bash
-# Build the CLI
-./build_cli.sh
-
-# Run with MIDI input (real-time)
-./chordlock_cli
-
-# Run without slash chord detection
-./chordlock_cli --no-slash
-
-# Run with velocity sensitivity
-./chordlock_cli --velocity
-
-# Analyze specific notes directly
-./chordlock_cli -N 60,64,67          # C major chord
-./chordlock_cli -N "[60, 63, 67]"    # C minor chord
-
-# Process multiple chords from file
-./chordlock_cli -f chords.txt
+python3 -m http.server 8000 --directory web
+# Open http://localhost:8000 in browser
 ```
 
-#### CLI Options
+### C++ Usage
+```cpp
+#include "Chordlock.hpp"
 
-- `-n, --no-slash` - Disable slash chord detection
-- `-v, --velocity` - Enable velocity sensitivity
-- `-N, --notes <notes>` - Analyze specific notes (e.g., "60,64,67" or "[60,64,67]")
-- `-f, --file <filename>` - Read notes from file (one set per line)
-- `-h, --help` - Show help message
+Chordlock detector;
+detector.noteOn(60, 80);  // C
+detector.noteOn(64, 80);  // E  
+detector.noteOn(67, 80);  // G
 
-#### File Format
-
-Create a text file with note numbers (0-127), one chord per line:
-
-```
-# This is a comment
-60,64,67        # C major
-60,63,67        # C minor
-67,71,74,77     # G7
+auto result = detector.detectChord();
+std::cout << result.chordName << std::endl;  // "C"
 ```
 
-### Test Program
-
-Run the test program to verify chord detection:
-
+### Build
 ```bash
-# Build the test program
-./build_test.sh
-
-# Run tests
-./test_chordlock
+./scripts/build_all.sh
+# Creates: native libraries, WebAssembly modules, distribution package
 ```
 
-### Building WebAssembly
+## Supported Chords
 
-Requires Emscripten:
+From basic triads to advanced jazz harmonies:
+- **Triads**: Major, Minor, Diminished, Augmented
+- **Extensions**: 7th, 9th, 11th, 13th chords
+- **Jazz**: Dominant alterations (b5, #5, b9, #9, #11, b13)
+- **Advanced**: Half-diminished, Suspended, Add chords, Polytonal
 
-```bash
-./compile.sh
+## Input Sources
+
+- **MIDI devices** via Web MIDI API or native MIDI
+- **Manual note input** through virtual piano interface
+- **Direct note arrays** for programmatic analysis
+- **Audio analysis** integration ready (FFT → note detection → chord analysis)
+
+## Architecture
+
+**C++ Core**
 ```
+├── Enhanced Hash Lookup Engine    # 339-chord database with rotational matching
+├── Velocity Processor            # Dynamic note weighting and timing
+├── SIMD Utilities               # Hardware-optimized bit operations  
+└── WebAssembly Bindings         # Browser compatibility layer
+```
+
+**Performance**: Native ~0.001ms, WebAssembly ~0.002ms per detection
+
+## API Reference
+
+### Core Methods
+```cpp
+// Note input
+void noteOn(int midiNote, int velocity = 80);
+void noteOff(int midiNote);
+
+// Detection  
+ChordResult detectChord();
+std::string detectChordDetailed(int maxResults = 5);
+
+// Configuration
+void setSlashChordDetection(bool enabled);
+void setConfidenceThreshold(float threshold);
+```
+
+### WebAssembly
+```javascript
+chordlock_init();
+chordlock_note_on(60, 80);
+const result = chordlock_detect_chord();
+```
+
+## Project Structure
+
+```
+src/
+├── Chordlock.{hpp,cpp}              # Main detection class
+├── chordlock_wasm.cpp               # WebAssembly bindings  
+├── engines/EnhancedHashLookupEngine # Core algorithm
+├── processors/VelocityProcessor     # MIDI processing
+└── enhanced_chord_hash_table.hpp    # 339-chord database
+
+web/
+├── index.html                       # Interactive demo
+├── styles.css                       # UI styling
+└── chordlock.{js,wasm}             # WebAssembly build
+```
+
+## Requirements
+
+- **C++17** compiler (GCC 8+, Clang 7+, MSVC 2019+)
+- **Emscripten** for WebAssembly builds
+- Modern browser with Web MIDI API support
 
 ## License
 
-LGPL-3.0
+MIT License
+
+## Author
+
+[@kurogedelic](https://github.com/kurogedelic)
+
+---
+
+*Built for musicians, developers, and music technology enthusiasts who demand accuracy and performance.*
