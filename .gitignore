@@ -8,8 +8,6 @@
 *.a
 build/
 dist/
-chordlock_cli
-test_chordlock
 
 # Editor directories and files
 .vscode/*
@@ -28,3 +26,7 @@ node_modules/
 # Temporary files
 *.tmp
 *.temp
+
+# Claude development files
+CLAUDE.md
+diary/

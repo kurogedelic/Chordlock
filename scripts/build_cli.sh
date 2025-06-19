@@ -18,16 +18,16 @@ else
 fi
 
 # Build command
-$CXX $CXXFLAGS -o chordlock_cli cli_main.cpp Chordlock.cpp $LDFLAGS
+$CXX $CXXFLAGS -o build/chordlock_cli src/cli_main.cpp src/Chordlock.cpp $LDFLAGS
 
 if [ $? -eq 0 ]; then
-    echo "Build successful! Run ./chordlock_cli to start"
+    echo "Build successful! Run ./build/chordlock_cli to start"
     echo ""
     echo "Usage:"
-    echo "  ./chordlock_cli           - Run with default settings"
-    echo "  ./chordlock_cli -n        - Disable slash chord detection"
-    echo "  ./chordlock_cli -v        - Enable velocity sensitivity"
-    echo "  ./chordlock_cli -h        - Show help"
+    echo "  ./build/chordlock_cli           - Run with default settings"
+    echo "  ./build/chordlock_cli -n        - Disable slash chord detection"
+    echo "  ./build/chordlock_cli -v        - Enable velocity sensitivity"
+    echo "  ./build/chordlock_cli -h        - Show help"
 else
     echo "Build failed!"
     exit 1
