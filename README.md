@@ -40,6 +40,10 @@ python3 -m http.server 8000 --directory web
 # Open http://localhost:8000 in browser
 ```
 
+**🚀 Quick Test** - Try the live web demo:
+- **[Piano Mode](https://kurogedelic.github.io/Chordlock/)**: Interactive chord detection with virtual piano and MIDI input
+- **[Chord Input Mode](https://kurogedelic.github.io/Chordlock/chord-input.html)**: Chord name input → visual piano display with note information
+
 **Available Web Applications:**
 - **index.html**: Interactive chord detection with virtual piano and MIDI input
 - **chord-input.html**: Chord name input → visual piano display with note information
@@ -217,7 +221,9 @@ MIT License
 
 ## Author
 
-[@kurogedelic](https://github.com/kurogedelic)
+**Leo Kuroshita** ([@kurogedelic](https://github.com/kurogedelic))
+
+© 2024 Leo Kuroshita. All rights reserved.
 
 ## Examples
 
