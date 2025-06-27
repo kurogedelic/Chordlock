@@ -930,6 +930,11 @@ bool Chordlock::isKnownChordType(const std::string& quality) {
 }
 
 std::vector<int> Chordlock::getIntervalsForQuality(const std::string& quality) {
+    // Handle special case for major 7th chord notation before normalization
+    if (quality == "M7" || quality == "maj7" || quality == "Maj7" || quality == "major7" || quality == "Major7") {
+        return {0, 4, 7, 11}; // Major 7th: root, major 3rd, 5th, major 7th
+    }
+    
     // Normalize quality for comparison
     std::string normalizedQuality = quality;
     std::transform(normalizedQuality.begin(), normalizedQuality.end(), 
