@@ -446,6 +446,49 @@ std::vector<int> Chordlock::chordNameToNotes(const std::string& chordName, int r
         }
     }
     
+    // Enharmonic search: try with enharmonic equivalent roots
+    std::vector<std::string> enharmonicRoots;
+    if (spec.root == "C#") {
+        enharmonicRoots.push_back("Db");
+    } else if (spec.root == "Db") {
+        enharmonicRoots.push_back("C#");
+    } else if (spec.root == "D#") {
+        enharmonicRoots.push_back("Eb");
+    } else if (spec.root == "Eb") {
+        enharmonicRoots.push_back("D#");
+    } else if (spec.root == "F#") {
+        enharmonicRoots.push_back("Gb");
+    } else if (spec.root == "Gb") {
+        enharmonicRoots.push_back("F#");
+    } else if (spec.root == "G#") {
+        enharmonicRoots.push_back("Ab");
+    } else if (spec.root == "Ab") {
+        enharmonicRoots.push_back("G#");
+    } else if (spec.root == "A#") {
+        enharmonicRoots.push_back("Bb");
+    } else if (spec.root == "Bb") {
+        enharmonicRoots.push_back("A#");
+    }
+    
+    for (const auto& enhRoot : enharmonicRoots) {
+        for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
+            std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
+            std::string tableRoot = std::string(ENHANCED_CHORD_TABLE[i].root);
+            
+            // Try to match with enharmonic root and same quality
+            if (tableRoot == enhRoot) {
+                // Create enharmonic version of input chord
+                std::string enhChordName = enhRoot + spec.quality;
+                std::string normalizedEnh = normalizeChordName(enhChordName);
+                std::string normalizedTableName = normalizeChordName(tableName);
+                
+                if (normalizedTableName == normalizedEnh) {
+                    return maskToNoteNumbers(ENHANCED_CHORD_TABLE[i].mask, spec.rootNote, rootOctave);
+                }
+            }
+        }
+    }
+    
     // Fallback search: partial matching for complex chords
     for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
         std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
