@@ -121,6 +121,12 @@ public:
     std::vector<std::string> suggestProgressions(const std::string& currentChord) const;
     bool isChordInKey(const std::string& chordName, int keySignature) const;
     
+    // Reverse chord lookup methods (chord name -> MIDI notes)
+    std::vector<int> chordNameToNotes(const std::string& chordName, int rootOctave = 4);
+    std::vector<std::vector<int>> chordNameToNotesWithAlternatives(const std::string& chordName, int rootOctave = 4);
+    std::vector<std::string> findSimilarChordNames(const std::string& input);
+    std::string chordNameToNotesJSON(const std::string& chordName, int rootOctave = 4);
+    
     // WebAssembly compatibility methods
     std::string detectChordJSON();
     void setNotesFromJSON(const std::string& jsonNotes);
@@ -134,4 +140,17 @@ private:
                                         uint32_t detectionTime);
     std::string formatChordName(const std::string& rawName) const;
     bool isValidChord(const std::string& chordName, float confidence) const;
+    
+    // Reverse lookup helper methods
+    struct ChordSpec {
+        std::string root;
+        std::string quality;
+        int rootNote;
+        std::vector<std::string> alternatives;
+    };
+    ChordSpec parseChordName(const std::string& input);
+    std::string normalizeChordName(const std::string& input);
+    int noteNameToNumber(const std::string& noteName);
+    std::vector<int> maskToNoteNumbers(uint16_t mask, int rootNote, int octave);
+    std::vector<std::string> generateChordAlternatives(const std::string& input);
 };

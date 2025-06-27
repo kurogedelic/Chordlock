@@ -1,7 +1,11 @@
 #include "Chordlock.hpp"
+#include "enhanced_chord_hash_table.hpp"
 #include <algorithm>
 #include <sstream>
 #include <cstring>
+#include <map>
+#include <set>
+#include <cctype>
 
 Chordlock::Chordlock() : Chordlock(EngineConfiguration()) {}
 
@@ -403,4 +407,423 @@ std::string Chordlock::formatChordName(const std::string& rawName) const {
 
 bool Chordlock::isValidChord(const std::string& chordName, float confidence) const {
     return !chordName.empty() && confidence >= config_.confidenceThreshold;
+}
+
+// Reverse chord lookup implementation
+std::vector<int> Chordlock::chordNameToNotes(const std::string& chordName, int rootOctave) {
+    ChordSpec spec = parseChordName(chordName);
+    if (spec.rootNote == -1) {
+        return {}; // Invalid chord name
+    }
+    
+    std::string normalizedInput = normalizeChordName(chordName);
+    
+    // Primary search: exact match with root and quality
+    for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
+        std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
+        std::string tableRoot = std::string(ENHANCED_CHORD_TABLE[i].root);
+        
+        // Check if both root and normalized name match exactly
+        if (tableRoot == spec.root && normalizeChordName(tableName) == normalizedInput) {
+            return maskToNoteNumbers(ENHANCED_CHORD_TABLE[i].mask, spec.rootNote, rootOctave);
+        }
+    }
+    
+    // Secondary search: try alternatives with same root
+    for (const auto& alt : spec.alternatives) {
+        std::string normalizedAlt = normalizeChordName(alt);
+        ChordSpec altSpec = parseChordName(alt);
+        
+        if (altSpec.rootNote != -1 && altSpec.root == spec.root) {
+            for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
+                std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
+                std::string tableRoot = std::string(ENHANCED_CHORD_TABLE[i].root);
+                
+                if (tableRoot == spec.root && normalizeChordName(tableName) == normalizedAlt) {
+                    return maskToNoteNumbers(ENHANCED_CHORD_TABLE[i].mask, spec.rootNote, rootOctave);
+                }
+            }
+        }
+    }
+    
+    // Fallback search: partial matching for complex chords
+    for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
+        std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
+        std::string tableRoot = std::string(ENHANCED_CHORD_TABLE[i].root);
+        
+        // If root matches, try fuzzy quality matching
+        if (tableRoot == spec.root) {
+            std::string normalizedTableName = normalizeChordName(tableName);
+            
+            // Extract quality from table name
+            std::string tableQuality = normalizedTableName.substr(spec.root.length());
+            std::string inputQuality = normalizedInput.substr(spec.root.length());
+            
+            // Check for similar qualities
+            if (tableQuality == inputQuality) {
+                return maskToNoteNumbers(ENHANCED_CHORD_TABLE[i].mask, spec.rootNote, rootOctave);
+            }
+        }
+    }
+    
+    return {}; // No match found
+}
+
+std::vector<std::vector<int>> Chordlock::chordNameToNotesWithAlternatives(const std::string& chordName, int rootOctave) {
+    std::vector<std::vector<int>> results;
+    std::set<std::vector<int>> uniqueResults; // For duplicate elimination
+    
+    // Primary chord
+    auto primaryNotes = chordNameToNotes(chordName, rootOctave);
+    if (!primaryNotes.empty()) {
+        uniqueResults.insert(primaryNotes);
+        results.push_back(primaryNotes);
+    }
+    
+    // Generate alternatives manually to avoid circular dependency
+    auto alternatives = generateChordAlternatives(chordName);
+    for (const auto& alt : alternatives) {
+        auto altNotes = chordNameToNotes(alt, rootOctave);
+        if (!altNotes.empty() && uniqueResults.find(altNotes) == uniqueResults.end()) {
+            uniqueResults.insert(altNotes);
+            results.push_back(altNotes);
+        }
+    }
+    
+    return results;
+}
+
+std::vector<std::string> Chordlock::findSimilarChordNames(const std::string& input) {
+    std::vector<std::string> similar;
+    std::set<std::string> uniqueChords; // For duplicate elimination
+    ChordSpec spec = parseChordName(input);
+    
+    if (spec.rootNote == -1) {
+        return similar;
+    }
+    
+    // Find all chords with the same root
+    for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
+        std::string tableRoot = std::string(ENHANCED_CHORD_TABLE[i].root);
+        std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
+        
+        if (tableRoot == spec.root && uniqueChords.find(tableName) == uniqueChords.end()) {
+            uniqueChords.insert(tableName);
+            similar.push_back(tableName);
+        }
+    }
+    
+    // Add enharmonic equivalents
+    std::vector<std::string> enharmonicRoots;
+    if (spec.root == "F#") {
+        enharmonicRoots.push_back("Gb");
+    } else if (spec.root == "Gb") {
+        enharmonicRoots.push_back("F#");
+    } else if (spec.root == "C#") {
+        enharmonicRoots.push_back("Db");
+    } else if (spec.root == "Db") {
+        enharmonicRoots.push_back("C#");
+    } else if (spec.root == "D#") {
+        enharmonicRoots.push_back("Eb");
+    } else if (spec.root == "Eb") {
+        enharmonicRoots.push_back("D#");
+    } else if (spec.root == "G#") {
+        enharmonicRoots.push_back("Ab");
+    } else if (spec.root == "Ab") {
+        enharmonicRoots.push_back("G#");
+    } else if (spec.root == "A#") {
+        enharmonicRoots.push_back("Bb");
+    } else if (spec.root == "Bb") {
+        enharmonicRoots.push_back("A#");
+    }
+    
+    for (const auto& enhRoot : enharmonicRoots) {
+        for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
+            std::string tableRoot = std::string(ENHANCED_CHORD_TABLE[i].root);
+            std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
+            
+            if (tableRoot == enhRoot && uniqueChords.find(tableName) == uniqueChords.end()) {
+                uniqueChords.insert(tableName);
+                similar.push_back(tableName);
+            }
+        }
+    }
+    
+    return similar;
+}
+
+std::string Chordlock::chordNameToNotesJSON(const std::string& chordName, int rootOctave) {
+    auto notes = chordNameToNotes(chordName, rootOctave);
+    
+    std::ostringstream json;
+    json << "{\"chord\":\"" << chordName << "\",\"notes\":[";
+    for (size_t i = 0; i < notes.size(); i++) {
+        json << notes[i];
+        if (i < notes.size() - 1) json << ",";
+    }
+    json << "],\"octave\":" << rootOctave << "}";
+    
+    return json.str();
+}
+
+// Helper method implementations
+Chordlock::ChordSpec Chordlock::parseChordName(const std::string& input) {
+    ChordSpec spec;
+    spec.rootNote = -1;
+    
+    if (input.empty()) {
+        return spec;
+    }
+    
+    std::string normalized = normalizeChordName(input);
+    
+    // Extract root note (first 1-2 characters)
+    if (normalized.length() >= 1) {
+        if (normalized.length() >= 2 && (normalized[1] == '#' || normalized[1] == 'b')) {
+            spec.root = normalized.substr(0, 2);
+            spec.quality = normalized.substr(2);
+        } else {
+            spec.root = normalized.substr(0, 1);
+            spec.quality = normalized.substr(1);
+        }
+        
+        spec.rootNote = noteNameToNumber(spec.root);
+        // alternatives will be generated separately to avoid circular dependency
+    }
+    
+    return spec;
+}
+
+std::string Chordlock::normalizeChordName(const std::string& input) {
+    std::string result = input;
+    
+    // Extract root note first (preserve case for note names)
+    std::string root;
+    std::string quality;
+    
+    if (result.length() >= 2 && (result[1] == '#' || result[1] == 'b' || result[1] == 'B')) {
+        root = result.substr(0, 2);
+        quality = result.substr(2);
+    } else if (result.length() >= 1) {
+        root = result.substr(0, 1);
+        quality = result.substr(1);
+    } else {
+        return result;
+    }
+    
+    // Normalize root note to uppercase
+    std::transform(root.begin(), root.end(), root.begin(), ::toupper);
+    if (root.length() == 2 && root[1] == 'B') {
+        root[1] = 'b'; // Convert 'B' to 'b' for flat
+    }
+    
+    // Normalize quality while preserving major/minor case sensitivity
+    std::string normalizedQuality = quality;
+    
+    // Convert variations to standard format, preserving case for m/M
+    size_t pos = normalizedQuality.find("maj7");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 4, "M7");
+    }
+    
+    pos = normalizedQuality.find("Maj7");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 4, "M7");
+    }
+    
+    pos = normalizedQuality.find("MAJ7");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 4, "M7");
+    }
+    
+    pos = normalizedQuality.find("maj");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "M");
+    }
+    
+    pos = normalizedQuality.find("Maj");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "M");
+    }
+    
+    pos = normalizedQuality.find("MAJ");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "M");
+    }
+    
+    pos = normalizedQuality.find("min7");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 4, "m7");
+    }
+    
+    pos = normalizedQuality.find("Min7");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 4, "m7");
+    }
+    
+    pos = normalizedQuality.find("MIN7");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 4, "m7");
+    }
+    
+    pos = normalizedQuality.find("min");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "m");
+    }
+    
+    pos = normalizedQuality.find("Min");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "m");
+    }
+    
+    pos = normalizedQuality.find("MIN");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "m");
+    }
+    
+    // Handle dim/diminished
+    pos = normalizedQuality.find("diminished");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 10, "dim");
+    }
+    
+    pos = normalizedQuality.find("Diminished");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 10, "dim");
+    }
+    
+    pos = normalizedQuality.find("DIM");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "dim");
+    }
+    
+    pos = normalizedQuality.find("Dim");
+    if (pos != std::string::npos) {
+        normalizedQuality.replace(pos, 3, "dim");
+    }
+    
+    return root + normalizedQuality;
+}
+
+int Chordlock::noteNameToNumber(const std::string& noteName) {
+    static const std::map<std::string, int> noteMap = {
+        {"C", 0}, {"C#", 1}, {"Db", 1}, {"DB", 1}, 
+        {"D", 2}, {"D#", 3}, {"Eb", 3}, {"EB", 3},
+        {"E", 4}, {"F", 5}, {"F#", 6}, {"Gb", 6}, {"GB", 6}, 
+        {"G", 7}, {"G#", 8}, {"Ab", 8}, {"AB", 8}, 
+        {"A", 9}, {"A#", 10}, {"Bb", 10}, {"BB", 10}, {"B", 11}
+    };
+    
+    auto it = noteMap.find(noteName);
+    return (it != noteMap.end()) ? it->second : -1;
+}
+
+std::vector<int> Chordlock::maskToNoteNumbers(uint16_t mask, int rootNote, int octave) {
+    std::vector<int> notes;
+    int baseNote = rootNote + (octave * 12);
+    
+    for (int i = 0; i < 12; i++) {
+        if (mask & (1 << i)) {
+            notes.push_back(baseNote + i);
+        }
+    }
+    
+    return notes;
+}
+
+std::vector<std::string> Chordlock::generateChordAlternatives(const std::string& input) {
+    std::vector<std::string> alternatives;
+    std::string normalizedInput = normalizeChordName(input);
+    
+    // Extract root and quality directly (avoid parseChordName to prevent circular dependency)
+    std::string root;
+    std::string quality;
+    
+    if (normalizedInput.length() >= 2 && (normalizedInput[1] == '#' || normalizedInput[1] == 'b')) {
+        root = normalizedInput.substr(0, 2);
+        quality = normalizedInput.substr(2);
+    } else if (normalizedInput.length() >= 1) {
+        root = normalizedInput.substr(0, 1);
+        quality = normalizedInput.substr(1);
+    } else {
+        return alternatives;
+    }
+    
+    // Validate root note
+    if (noteNameToNumber(root) == -1) {
+        return alternatives;
+    }
+    
+    // Generate enharmonic equivalents for root note
+    std::vector<std::string> enharmonicRoots;
+    if (root == "C#") {
+        enharmonicRoots.push_back("Db");
+    } else if (root == "Db") {
+        enharmonicRoots.push_back("C#");
+    } else if (root == "D#") {
+        enharmonicRoots.push_back("Eb");
+    } else if (root == "Eb") {
+        enharmonicRoots.push_back("D#");
+    } else if (root == "F#") {
+        enharmonicRoots.push_back("Gb");
+    } else if (root == "Gb") {
+        enharmonicRoots.push_back("F#");
+    } else if (root == "G#") {
+        enharmonicRoots.push_back("Ab");
+    } else if (root == "Ab") {
+        enharmonicRoots.push_back("G#");
+    } else if (root == "A#") {
+        enharmonicRoots.push_back("Bb");
+    } else if (root == "Bb") {
+        enharmonicRoots.push_back("A#");
+    }
+    
+    // Add enharmonic alternatives with same quality
+    for (const auto& enhRoot : enharmonicRoots) {
+        alternatives.push_back(enhRoot + quality);
+    }
+    
+    // Add quality variations with original root
+    if (quality == "M7" || quality == "maj7") {
+        alternatives.push_back(root + "M7");
+        alternatives.push_back(root + "maj7");
+        alternatives.push_back(root + "Maj7");
+    } else if (quality == "m7" || quality == "min7") {
+        alternatives.push_back(root + "m7");
+        alternatives.push_back(root + "min7");
+    } else if (quality == "7") {
+        alternatives.push_back(root + "7");
+        alternatives.push_back(root + "dom7");
+    } else if (quality == "m") {
+        alternatives.push_back(root + "m");
+        alternatives.push_back(root + "min");
+    } else if (quality.empty()) {
+        alternatives.push_back(root);
+        alternatives.push_back(root + "maj");
+    } else if (quality == "dim") {
+        alternatives.push_back(root + "dim");
+        alternatives.push_back(root + "diminished");
+    }
+    
+    // Add enharmonic alternatives with quality variations
+    for (const auto& enhRoot : enharmonicRoots) {
+        if (quality == "M7" || quality == "maj7") {
+            alternatives.push_back(enhRoot + "M7");
+            alternatives.push_back(enhRoot + "maj7");
+        } else if (quality == "m7" || quality == "min7") {
+            alternatives.push_back(enhRoot + "m7");
+            alternatives.push_back(enhRoot + "min7");
+        } else if (quality == "7") {
+            alternatives.push_back(enhRoot + "7");
+        } else if (quality == "m") {
+            alternatives.push_back(enhRoot + "m");
+            alternatives.push_back(enhRoot + "min");
+        } else if (quality.empty()) {
+            alternatives.push_back(enhRoot);
+        } else if (quality == "dim") {
+            alternatives.push_back(enhRoot + "dim");
+        }
+    }
+    
+    return alternatives;
 }
