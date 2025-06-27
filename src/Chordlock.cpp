@@ -628,7 +628,45 @@ std::string Chordlock::chordNameToNotesJSON(const std::string& chordName, int ro
         // Chord found successfully - generate canonical name
         ChordSpec spec = parseChordName(chordName);
         auto intervals = getIntervalsForQuality(spec.quality);
-        std::string canonicalName = getCanonicalChordName(spec.root, intervals);
+        
+        // Generate canonical name - use intervals from actual notes for reliability
+        std::string canonicalName;
+        if (!notes.empty()) {
+            // Extract intervals from actual notes found
+            int rootNote = notes[0];
+            std::vector<int> actualIntervals;
+            for (int note : notes) {
+                actualIntervals.push_back(note - rootNote);
+            }
+            
+            // Generate canonical name based on actual intervals
+            if (actualIntervals == std::vector<int>{0, 4, 7, 11}) {
+                canonicalName = spec.root + "maj7";
+            } else if (actualIntervals == std::vector<int>{0, 4, 7}) {
+                canonicalName = spec.root;
+            } else if (actualIntervals == std::vector<int>{0, 3, 7}) {
+                canonicalName = spec.root + "m";
+            } else if (actualIntervals == std::vector<int>{0, 4, 7, 10}) {
+                canonicalName = spec.root + "7";
+            } else if (actualIntervals == std::vector<int>{0, 3, 7, 10}) {
+                canonicalName = spec.root + "m7";
+            } else if (actualIntervals == std::vector<int>{0, 4, 8}) {
+                canonicalName = spec.root + "aug";
+            } else if (actualIntervals == std::vector<int>{0, 3, 6}) {
+                canonicalName = spec.root + "dim";
+            } else if (actualIntervals == std::vector<int>{0, 5, 7}) {
+                canonicalName = spec.root + "sus4";
+            } else if (actualIntervals == std::vector<int>{0, 2, 7}) {
+                canonicalName = spec.root + "sus2";
+            } else if (actualIntervals == std::vector<int>{0, 7}) {
+                canonicalName = spec.root + "5";
+            } else {
+                // Use the original getCanonicalChordName as fallback
+                canonicalName = getCanonicalChordName(spec.root, actualIntervals);
+            }
+        } else {
+            canonicalName = spec.root;
+        }
         
         json << "{\"chord\":\"" << canonicalName << "\",\"input\":\"" << chordName << "\",\"notes\":[";
         for (size_t i = 0; i < notes.size(); i++) {
@@ -1167,6 +1205,13 @@ std::string Chordlock::getCanonicalChordName(const std::string& root, const std:
         return root + "9"; // Dominant 9th is more common
     }
     
-    // If no match found, return root with generic suffix
-    return root + "?";
+    // If no match found, construct a reasonable canonical name
+    // This should not happen often, but provides a fallback
+    if (sortedIntervals.size() >= 3) {
+        // For unknown chords, try to construct a meaningful name
+        return root + "unknown";
+    }
+    
+    // For single note or two notes, just return root
+    return root;
 }
