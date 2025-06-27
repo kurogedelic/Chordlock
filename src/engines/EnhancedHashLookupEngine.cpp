@@ -307,7 +307,33 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
         }
     }
     
-    // Strategy 1: Bass-aware slash chord analysis (PRIORITIZED!)
+    // Strategy 1: Exact matches (PRIORITIZED for theoretical chords like sus2, sus4, etc.)
+    const EnhancedChordEntry* exactEntry = findEnhancedChord(mask);
+    if (exactEntry) {
+        DetailedChordCandidate candidate;
+        candidate.name = exactEntry->name;
+        candidate.mask = exactEntry->mask;
+        candidate.confidence = exactEntry->confidence;
+        candidate.root = exactEntry->root;
+        candidate.isInversion = false;
+        candidate.inversionDegree = 0;
+        candidate.interpretationType = "exact";
+        candidate.matchScore = 1.0f;
+        
+        // Boost confidence for theoretical chords (sus2, sus4, add9, etc.)
+        std::string chordName = exactEntry->name;
+        if (chordName.find("sus2") != std::string::npos ||
+            chordName.find("sus4") != std::string::npos ||
+            chordName.find("add") != std::string::npos ||
+            chordName.find("dim") != std::string::npos ||
+            chordName.find("aug") != std::string::npos) {
+            candidate.confidence *= 1.3f; // Prioritize theoretical chords
+        }
+        
+        detailedCandidates.push_back(candidate);
+    }
+    
+    // Strategy 2: Bass-aware slash chord analysis
     if (noteCount >= 3) {
         int bassNote = findLowestNote();
         if (bassNote >= 0) {
@@ -331,19 +357,24 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
                         // Create slash chord candidate
                         auto slashCandidate = createSlashChordCandidate(upperChord, bassNote, upperChord->confidence);
                         
+                        // Reduce slash chord confidence when exact match exists
+                        if (exactEntry) {
+                            slashCandidate.confidence *= 0.8f; // Demote slash chords when exact match available
+                        }
+                        
                         // Boost confidence for slash chords when bass is in much lower register
                         int bassRegister = bassNote / 12;
                         int upperRegister = findHighestNote() / 12;
                         
                         if (upperRegister - bassRegister >= 1) {
                             // Clear register separation - boost slash chord confidence
-                            slashCandidate.confidence *= 1.2f;
+                            slashCandidate.confidence *= 1.1f; // Reduced from 1.2f
                         }
                         
                         // Boost confidence if upper voices form a complete triad
                         int upperNoteCount = __builtin_popcount(upperMask);
                         if (upperNoteCount >= 3) {
-                            slashCandidate.confidence *= 1.1f;
+                            slashCandidate.confidence *= 1.05f; // Reduced from 1.1f
                         }
                         
                         detailedCandidates.push_back(slashCandidate);
@@ -351,22 +382,6 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
                 }
             }
         }
-    }
-    
-    // Strategy 2: Exact matches
-    const EnhancedChordEntry* exactEntry = findEnhancedChord(mask);
-    if (exactEntry) {
-        DetailedChordCandidate candidate;
-        candidate.name = exactEntry->name;
-        candidate.mask = exactEntry->mask;
-        candidate.confidence = exactEntry->confidence;
-        candidate.root = exactEntry->root;
-        candidate.isInversion = false;
-        candidate.inversionDegree = 0;
-        candidate.interpretationType = "exact";
-        candidate.matchScore = 1.0f;
-        
-        detailedCandidates.push_back(candidate);
     }
     
     // Strategy 3: Inversion detection
