@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CM7 Canonical Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .pass { background: #d4edda; border-color: #c3e6cb; }
+        .fail { background: #f8d7da; border-color: #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>CM7 vs Cmaj7 Canonical Naming Test</h1>
+    <button onclick="testCanonical()">Test</button>
+    <div id="status">Loading...</div>
+    <div id="results"></div>
+
+    <script src="web/chordlock.js"></script>
+    <script>
+        let chordlock = null;
+
+        ChordlockModule().then(function(Module) {
+            chordlock = Module;
+            Module.ccall('chordlock_init', null, [], []);
+            document.getElementById('status').textContent = 'Ready!';
+        }).catch(function(err) {
+            document.getElementById('status').textContent = 'Failed: ' + err;
+        });
+
+        function testCanonical() {
+            if (!chordlock) {
+                alert('Not ready');
+                return;
+            }
+
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+
+            // Test CM7
+            const cm7Result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['CM7', 4]);
+            const cm7Data = JSON.parse(cm7Result);
+
+            // Test Cmaj7
+            const cmaj7Result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['Cmaj7', 4]);
+            const cmaj7Data = JSON.parse(cmaj7Result);
+
+            // Display results
+            const cm7Div = document.createElement('div');
+            cm7Div.className = 'result';
+            cm7Div.innerHTML = `
+                <h3>CM7 Result:</h3>
+                <p>Canonical Name: "${cm7Data.chord}"</p>
+                <p>Full JSON: ${cm7Result}</p>
+            `;
+            results.appendChild(cm7Div);
+
+            const cmaj7Div = document.createElement('div');
+            cmaj7Div.className = 'result';
+            cmaj7Div.innerHTML = `
+                <h3>Cmaj7 Result:</h3>
+                <p>Canonical Name: "${cmaj7Data.chord}"</p>
+                <p>Full JSON: ${cmaj7Result}</p>
+            `;
+            results.appendChild(cmaj7Div);
+
+            // Compare
+            const compareDiv = document.createElement('div');
+            compareDiv.className = 'result';
+            const same = cm7Data.chord === cmaj7Data.chord;
+            compareDiv.classList.add(same ? 'pass' : 'fail');
+            compareDiv.innerHTML = `
+                <h3>Comparison Result: ${same ? '✅ PASS' : '❌ FAIL'}</h3>
+                <p>CM7 canonical: "${cm7Data.chord}"</p>
+                <p>Cmaj7 canonical: "${cmaj7Data.chord}"</p>
+                <p>Expected: Both should return "Cmaj7"</p>
+            `;
+            results.appendChild(compareDiv);
+        }
+    </script>
+</body>
+</html>

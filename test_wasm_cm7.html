@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WebAssembly CM7</title>
+</head>
+<body>
+    <h1>WebAssembly CM7 Test</h1>
+    <button onclick="testCM7()">Test CM7</button>
+    <div id="result"></div>
+
+    <script src="web/chordlock.js"></script>
+    <script>
+        let chordlock = null;
+
+        ChordlockModule().then(function(Module) {
+            chordlock = Module;
+            Module.ccall('chordlock_init', null, [], []);
+            console.log('WebAssembly loaded successfully');
+            document.body.innerHTML += '<p style="color: green;">WebAssembly loaded!</p>';
+        }).catch(function(err) {
+            console.error('Failed to load WebAssembly:', err);
+            document.body.innerHTML += '<p style="color: red;">Failed to load WebAssembly: ' + err + '</p>';
+        });
+
+        function testCM7() {
+            if (!chordlock) {
+                document.getElementById('result').innerHTML = 'WebAssembly not loaded yet';
+                return;
+            }
+
+            try {
+                console.log('Testing CM7...');
+                const result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['CM7', 4]);
+                console.log('CM7 result:', result);
+                
+                const data = JSON.parse(result);
+                console.log('Parsed data:', data);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>CM7 Test Result:</h3>
+                    <p><strong>Input:</strong> CM7</p>
+                    <p><strong>Chord field:</strong> "${data.chord}"</p>
+                    <p><strong>Input field:</strong> "${data.input || 'N/A'}"</p>
+                    <p><strong>Notes:</strong> [${data.notes ? data.notes.join(', ') : 'N/A'}]</p>
+                    <p><strong>Status:</strong> ${data.chord === 'Cmaj7' ? '✅ CORRECT (Canonical)' : '❌ WRONG (Not canonical)'}</p>
+                    <details>
+                        <summary>Full JSON</summary>
+                        <pre>${result}</pre>
+                    </details>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = 'Error: ' + error;
+            }
+        }
+    </script>
+</body>
+</html>

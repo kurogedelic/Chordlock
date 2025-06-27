@@ -227,28 +227,22 @@ export class ChordlockMCPServer {
   async start(): Promise<void> {
     // Initialize Chordlock engine
     await this.tools.initialize();
-    console.log('🎵 Chordlock MCP Server initialized');
 
     // Set up transport
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    
-    console.log('🚀 Chordlock MCP Server running on stdio');
   }
 
   async stop(): Promise<void> {
     this.tools.cleanup();
-    console.log('🛑 Chordlock MCP Server stopped');
   }
 }
 
 // Handle process cleanup
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down Chordlock MCP Server...');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n🛑 Shutting down Chordlock MCP Server...');
   process.exit(0);
 });

@@ -34,10 +34,7 @@ class ChordlockEngine {
       // Initialize the Chordlock engine
       this.wasmModule!.ccall('chordlock_init', null, [], []);
       this.initialized = true;
-      
-      console.log('✅ Chordlock engine initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize Chordlock engine:', error);
       throw new Error(`Chordlock initialization failed: ${error}`);
     }
   }
@@ -68,7 +65,6 @@ class ChordlockEngine {
         alternatives: result.alternatives || []
       };
     } catch (error) {
-      console.error('Chord detection error:', error);
       return {
         chord: 'Error',
         confidence: 0,
@@ -129,7 +125,6 @@ class ChordlockEngine {
         suggestions: []
       };
     } catch (error) {
-      console.error('Chord to notes conversion error:', error);
       return {
         found: false,
         chord: chordName,
@@ -158,7 +153,6 @@ class ChordlockEngine {
       const result = JSON.parse(resultJson);
       return result.similar || [];
     } catch (error) {
-      console.error('Similar chords search error:', error);
       return [];
     }
   }
@@ -172,7 +166,6 @@ class ChordlockEngine {
     try {
       return this.wasmModule!.ccall('chordlock_get_version', 'string', [], []);
     } catch (error) {
-      console.error('Version retrieval error:', error);
       return 'unknown';
     }
   }
@@ -185,7 +178,7 @@ class ChordlockEngine {
       try {
         this.wasmModule.ccall('chordlock_cleanup', null, [], []);
       } catch (error) {
-        console.warn('Cleanup error (non-critical):', error);
+        // Cleanup error - ignore
       }
     }
     this.initialized = false;

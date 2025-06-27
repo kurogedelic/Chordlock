@@ -8,14 +8,12 @@
 import { ChordlockMCPServer } from './server';
 
 async function main() {
-  console.log('🎵 Starting Chordlock MCP Server...');
-  
   const server = new ChordlockMCPServer();
   
   try {
     await server.start();
   } catch (error) {
-    console.error('❌ Failed to start Chordlock MCP Server:', error);
+    process.stderr.write(`Failed to start Chordlock MCP Server: ${error}\n`);
     process.exit(1);
   }
 }
@@ -23,7 +21,7 @@ async function main() {
 // Start the server
 if (require.main === module) {
   main().catch(error => {
-    console.error('❌ Unhandled error:', error);
+    process.stderr.write(`Unhandled error: ${error}\n`);
     process.exit(1);
   });
 }

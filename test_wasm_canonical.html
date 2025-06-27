@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAssembly Canonical Naming Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .success { border-color: #28a745; }
+        .fail { border-color: #dc3545; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>WebAssembly Canonical Naming Test</h1>
+    <div id="status">Loading WebAssembly...</div>
+    <div id="results"></div>
+
+    <script>
+        let chordlock = null;
+
+        // Test cases for canonical naming
+        const testCases = [
+            { input: 'C+', expected: 'Caug', desc: 'Augmented symbol should return canonical name' },
+            { input: 'Caug', expected: 'Caug', desc: 'Canonical name should remain unchanged' },
+            { input: 'C°', expected: 'Cdim', desc: 'Diminished symbol should return canonical name' },
+            { input: 'Cdim', expected: 'Cdim', desc: 'Canonical name should remain unchanged' },
+            { input: 'CM', expected: 'C', desc: 'Major notation should return canonical name' },
+            { input: 'Cmaj', expected: 'C', desc: 'Major notation should return canonical name' },
+            { input: 'CM7', expected: 'Cmaj7', desc: 'Major 7th should return canonical name' },
+            { input: 'Cmaj7', expected: 'Cmaj7', desc: 'Canonical name should remain unchanged' },
+            { input: 'Csus', expected: 'Csus4', desc: 'Generic sus should return sus4' },
+            { input: 'C5', expected: 'C5', desc: 'Power chord should remain unchanged' }
+        ];
+
+        function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Test Results</h2>';
+
+            let passed = 0;
+            let total = testCases.length;
+
+            testCases.forEach((testCase, index) => {
+                try {
+                    const result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], [testCase.input, 4]);
+                    const chordData = JSON.parse(result);
+                    
+                    const testDiv = document.createElement('div');
+                    testDiv.className = 'test-result';
+                    
+                    if (chordData.found && chordData.chord === testCase.expected) {
+                        testDiv.classList.add('success');
+                        testDiv.innerHTML = `
+                            <h3>✅ Test ${index + 1}: PASS</h3>
+                            <p><strong>Input:</strong> ${testCase.input}</p>
+                            <p><strong>Expected:</strong> ${testCase.expected}</p>
+                            <p><strong>Got:</strong> ${chordData.chord}</p>
+                            <p><strong>Description:</strong> ${testCase.desc}</p>
+                            <details>
+                                <summary>Full Result</summary>
+                                <pre>${JSON.stringify(chordData, null, 2)}</pre>
+                            </details>
+                        `;
+                        passed++;
+                    } else {
+                        testDiv.classList.add('fail');
+                        testDiv.innerHTML = `
+                            <h3>❌ Test ${index + 1}: FAIL</h3>
+                            <p><strong>Input:</strong> ${testCase.input}</p>
+                            <p><strong>Expected:</strong> ${testCase.expected}</p>
+                            <p><strong>Got:</strong> ${chordData.chord || 'undefined'}</p>
+                            <p><strong>Description:</strong> ${testCase.desc}</p>
+                            <details>
+                                <summary>Full Result</summary>
+                                <pre>${JSON.stringify(chordData, null, 2)}</pre>
+                            </details>
+                        `;
+                    }
+                    
+                    results.appendChild(testDiv);
+                } catch (error) {
+                    const testDiv = document.createElement('div');
+                    testDiv.className = 'test-result fail';
+                    testDiv.innerHTML = `
+                        <h3>❌ Test ${index + 1}: ERROR</h3>
+                        <p><strong>Input:</strong> ${testCase.input}</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Description:</strong> ${testCase.desc}</p>
+                    `;
+                    results.appendChild(testDiv);
+                }
+            });
+
+            // Summary
+            const summary = document.createElement('div');
+            summary.className = `test-result ${passed === total ? 'success' : 'fail'}`;
+            summary.innerHTML = `
+                <h2>Summary: ${passed}/${total} tests passed</h2>
+                <p>${passed === total ? 'All tests passed! 🎉' : 'Some tests failed. Please review above.'}</p>
+            `;
+            results.appendChild(summary);
+        }
+
+        // Load WebAssembly module
+        const script = document.createElement('script');
+        script.src = 'web/chordlock.js';
+        script.onload = function() {
+            document.getElementById('status').textContent = 'Initializing...';
+            
+            ChordlockModule().then(function(Module) {
+                chordlock = Module;
+                
+                // Initialize the engine
+                chordlock.ccall('chordlock_init', null, [], []);
+                
+                document.getElementById('status').textContent = 'Ready! Running tests...';
+                
+                // Run tests after a brief delay
+                setTimeout(runTests, 100);
+            }).catch(function(error) {
+                document.getElementById('status').textContent = 'Failed to load WebAssembly: ' + error.message;
+                console.error('WebAssembly loading error:', error);
+            });
+        };
+        script.onerror = function() {
+            document.getElementById('status').textContent = 'Failed to load WebAssembly script';
+        };
+        
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

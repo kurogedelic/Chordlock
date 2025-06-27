@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple WebAssembly Test</title>
+</head>
+<body>
+    <h1>WebAssembly Canonical Test</h1>
+    <button onclick="testCM7()">Test CM7</button>
+    <div id="result"></div>
+
+    <script src="web/chordlock.js"></script>
+    <script>
+        let chordlock = null;
+
+        ChordlockModule().then(function(Module) {
+            chordlock = Module;
+            Module.ccall('chordlock_init', null, [], []);
+            console.log('WebAssembly loaded');
+        }).catch(function(err) {
+            console.error('Failed to load WebAssembly:', err);
+        });
+
+        function testCM7() {
+            if (!chordlock) {
+                document.getElementById('result').innerHTML = 'WebAssembly not loaded';
+                return;
+            }
+
+            try {
+                const result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['CM7', 4]);
+                document.getElementById('result').innerHTML = `
+                    <h3>CM7 Result:</h3>
+                    <pre>${result}</pre>
+                `;
+                console.log('CM7 result:', result);
+                
+                // Parse and check
+                const data = JSON.parse(result);
+                console.log('Chord field:', data.chord);
+                console.log('Input field:', data.input);
+                
+                if (data.chord === 'CM7') {
+                    console.log('❌ PROBLEM: Returning input instead of canonical name');
+                } else if (data.chord === 'Cmaj7') {
+                    console.log('✅ GOOD: Returning canonical name');
+                } else {
+                    console.log('? UNEXPECTED:', data.chord);
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
