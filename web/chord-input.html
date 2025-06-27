@@ -485,8 +485,8 @@
                     return;
                 }
                 
-                // Display the chord
-                displayChord(chordInput, chordData.notes, octave);
+                // Display the chord with canonical name
+                displayChord(chordData.chord, chordData.notes, octave);
                 
                 // Get alternatives
                 const altResult = chordlock.ccall('chordlock_chord_name_to_notes_with_alternatives', 'string', ['string', 'number'], [chordInput, octave]);
