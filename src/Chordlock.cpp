@@ -930,9 +930,40 @@ bool Chordlock::isKnownChordType(const std::string& quality) {
 }
 
 std::vector<int> Chordlock::getIntervalsForQuality(const std::string& quality) {
-    // Handle special case for major 7th chord notation before normalization
+    // Handle special major chord notations before normalization
     if (quality == "M7" || quality == "maj7" || quality == "Maj7" || quality == "major7" || quality == "Major7") {
         return {0, 4, 7, 11}; // Major 7th: root, major 3rd, 5th, major 7th
+    }
+    if (quality == "M" || quality == "maj" || quality == "Maj" || quality == "major" || quality == "Major") {
+        return {0, 4, 7}; // Major: root, major 3rd, 5th
+    }
+    if (quality == "M6") {
+        return {0, 4, 7, 9}; // Major 6th: root, major 3rd, 5th, 6th
+    }
+    if (quality == "M9") {
+        return {0, 2, 4, 7, 10}; // Major 9th: add 2nd and 7th
+    }
+    
+    // Handle special symbols before normalization
+    if (quality == "+") {
+        return {0, 4, 8}; // Augmented: root, major 3rd, augmented 5th
+    }
+    if (quality == "°") {
+        return {0, 3, 6}; // Diminished: root, minor 3rd, diminished 5th
+    }
+    if (quality == "°7") {
+        return {0, 3, 6, 9}; // Diminished 7th
+    }
+    if (quality == "ø") {
+        return {0, 3, 6, 10}; // Half-diminished
+    }
+    
+    // Complex altered chords (before normalization to preserve #/b symbols)
+    if (quality == "+7" || quality == "aug7") {
+        return {0, 4, 8, 10}; // Augmented 7th: root, major 3rd, aug 5th, minor 7th
+    }
+    if (quality == "maj7#5") {
+        return {0, 4, 8, 11}; // Major 7th sharp 5: root, major 3rd, aug 5th, major 7th
     }
     
     // Normalize quality for comparison
@@ -960,6 +991,9 @@ std::vector<int> Chordlock::getIntervalsForQuality(const std::string& quality) {
     }
     if (normalizedQuality == "sus2") {
         return {0, 2, 7}; // Sus2: root, 2nd, 5th
+    }
+    if (normalizedQuality == "sus") {
+        return {0, 5, 7}; // Generic sus defaults to sus4
     }
     
     // Power chord
@@ -1012,6 +1046,11 @@ std::vector<int> Chordlock::getIntervalsForQuality(const std::string& quality) {
     }
     if (normalizedQuality == "13") {
         return {0, 4, 7, 10, 14, 21}; // Dominant 13th: includes 7th + 9th + 13th
+    }
+    
+    // Alternative notations
+    if (normalizedQuality == "no3" || normalizedQuality == "omit3") {
+        return {0, 7}; // No 3rd: just root and 5th (like power chord)
     }
     
     return {}; // Unknown chord type
