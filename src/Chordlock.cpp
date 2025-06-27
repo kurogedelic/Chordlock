@@ -720,10 +720,13 @@ int Chordlock::noteNameToNumber(const std::string& noteName) {
 
 std::vector<int> Chordlock::maskToNoteNumbers(uint16_t mask, int rootNote, int octave) {
     std::vector<int> notes;
-    int baseNote = rootNote + (octave * 12);
+    int baseNote = octave * 12;
     
     for (int i = 0; i < 12; i++) {
         if (mask & (1 << i)) {
+            // Convert from absolute semitone position to actual MIDI note
+            // The mask represents absolute semitone positions from C
+            // We need to add the base octave to get the final MIDI note
             notes.push_back(baseNote + i);
         }
     }
