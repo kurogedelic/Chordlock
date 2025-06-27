@@ -27,7 +27,7 @@ void Chordlock::initializeEngine() {
     engine_->setSlashChordDetection(config_.slashChordDetection);
     engine_->setKey(config_.keySignature);
     
-    stats_.engineVersion = "1.0.0";
+    stats_.engineVersion = "1.1.0";
 }
 
 Chordlock::DetectionResult Chordlock::detectChord() {
