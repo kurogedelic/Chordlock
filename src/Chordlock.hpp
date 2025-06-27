@@ -158,4 +158,5 @@ private:
     std::vector<int> calculateTheoreticalChord(const std::string& chordName, int rootOctave);
     bool isKnownChordType(const std::string& quality);
     std::vector<int> getIntervalsForQuality(const std::string& quality);
+    std::string getCanonicalChordName(const std::string& root, const std::vector<int>& intervals);
 };

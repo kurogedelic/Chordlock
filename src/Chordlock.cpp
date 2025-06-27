@@ -607,11 +607,10 @@ std::string Chordlock::chordNameToNotesJSON(const std::string& chordName, int ro
     auto notes = chordNameToNotes(chordName, rootOctave);
     
     std::ostringstream json;
-    json << "{\"chord\":\"" << chordName << "\",\"notes\":[";
     
     if (notes.empty()) {
         // Chord not found - provide error and suggestions
-        json << "],\"octave\":" << rootOctave << ",\"found\":false,";
+        json << "{\"chord\":\"" << chordName << "\",\"notes\":[],\"octave\":" << rootOctave << ",\"found\":false,";
         json << "\"error\":\"Chord not found in database\",";
         
         // Find similar chord suggestions
@@ -624,17 +623,21 @@ std::string Chordlock::chordNameToNotesJSON(const std::string& chordName, int ro
             json << "\"" << suggestions[i] << "\"";
             if (i < maxSuggestions - 1) json << ",";
         }
-        json << "]";
+        json << "]}";
     } else {
-        // Chord found successfully
+        // Chord found successfully - generate canonical name
+        ChordSpec spec = parseChordName(chordName);
+        auto intervals = getIntervalsForQuality(spec.quality);
+        std::string canonicalName = getCanonicalChordName(spec.root, intervals);
+        
+        json << "{\"chord\":\"" << canonicalName << "\",\"input\":\"" << chordName << "\",\"notes\":[";
         for (size_t i = 0; i < notes.size(); i++) {
             json << notes[i];
             if (i < notes.size() - 1) json << ",";
         }
-        json << "],\"octave\":" << rootOctave << ",\"found\":true";
+        json << "],\"octave\":" << rootOctave << ",\"found\":true}";
     }
     
-    json << "}";
     return json.str();
 }
 
@@ -1054,4 +1057,116 @@ std::vector<int> Chordlock::getIntervalsForQuality(const std::string& quality) {
     }
     
     return {}; // Unknown chord type
+}
+
+std::string Chordlock::getCanonicalChordName(const std::string& root, const std::vector<int>& intervals) {
+    // Convert intervals to canonical chord name
+    if (intervals.empty()) {
+        return root;
+    }
+    
+    // Sort intervals for comparison (should already be sorted, but ensure)
+    std::vector<int> sortedIntervals = intervals;
+    std::sort(sortedIntervals.begin(), sortedIntervals.end());
+    
+    // Major triads
+    if (sortedIntervals == std::vector<int>{0, 4, 7}) {
+        return root; // Just "C" for major
+    }
+    
+    // Minor triads  
+    if (sortedIntervals == std::vector<int>{0, 3, 7}) {
+        return root + "m";
+    }
+    
+    // Diminished triads
+    if (sortedIntervals == std::vector<int>{0, 3, 6}) {
+        return root + "dim";
+    }
+    
+    // Augmented triads
+    if (sortedIntervals == std::vector<int>{0, 4, 8}) {
+        return root + "aug";
+    }
+    
+    // Suspended chords
+    if (sortedIntervals == std::vector<int>{0, 5, 7}) {
+        return root + "sus4";
+    }
+    if (sortedIntervals == std::vector<int>{0, 2, 7}) {
+        return root + "sus2";
+    }
+    
+    // Power chord
+    if (sortedIntervals == std::vector<int>{0, 7}) {
+        return root + "5";
+    }
+    
+    // 7th chords
+    if (sortedIntervals == std::vector<int>{0, 4, 7, 10}) {
+        return root + "7"; // Dominant 7th
+    }
+    if (sortedIntervals == std::vector<int>{0, 3, 7, 10}) {
+        return root + "m7"; // Minor 7th
+    }
+    if (sortedIntervals == std::vector<int>{0, 4, 7, 11}) {
+        return root + "maj7"; // Major 7th
+    }
+    if (sortedIntervals == std::vector<int>{0, 3, 6, 10}) {
+        return root + "m7b5"; // Half-diminished
+    }
+    if (sortedIntervals == std::vector<int>{0, 3, 6, 9}) {
+        return root + "dim7"; // Diminished 7th
+    }
+    
+    // 6th chords
+    if (sortedIntervals == std::vector<int>{0, 4, 7, 9}) {
+        return root + "6"; // Major 6th
+    }
+    if (sortedIntervals == std::vector<int>{0, 3, 7, 9}) {
+        return root + "m6"; // Minor 6th
+    }
+    
+    // Add chords
+    if (sortedIntervals == std::vector<int>{0, 4, 7, 14}) {
+        return root + "add9";
+    }
+    if (sortedIntervals == std::vector<int>{0, 2, 4, 7}) {
+        return root + "add2";
+    }
+    if (sortedIntervals == std::vector<int>{0, 4, 5, 7}) {
+        return root + "add4";
+    }
+    
+    // Extended chords
+    if (sortedIntervals == std::vector<int>{0, 4, 7, 10, 14}) {
+        return root + "9"; // Dominant 9th
+    }
+    if (sortedIntervals == std::vector<int>{0, 4, 7, 10, 14, 17}) {
+        return root + "11"; // Dominant 11th
+    }
+    if (sortedIntervals == std::vector<int>{0, 4, 7, 10, 14, 21}) {
+        return root + "13"; // Dominant 13th
+    }
+    
+    // Complex altered chords
+    if (sortedIntervals == std::vector<int>{0, 4, 8, 10}) {
+        return root + "7#5"; // Augmented 7th (prefer 7#5 over aug7)
+    }
+    if (sortedIntervals == std::vector<int>{0, 4, 8, 11}) {
+        return root + "maj7#5"; // Major 7th sharp 5
+    }
+    
+    // Minor 9th
+    if (sortedIntervals == std::vector<int>{0, 2, 3, 7, 10}) {
+        return root + "m9";
+    }
+    
+    // Major 9th (with major 7th)
+    if (sortedIntervals == std::vector<int>{0, 2, 4, 7, 10}) {
+        return root + "9"; // Dominant 9th is more common
+    }
+    
+    // If no match found, return root with generic suffix
+    return root + "?";
 }
