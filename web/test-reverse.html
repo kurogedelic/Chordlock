@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chordlock WebAssembly Reverse Function Test</title>
+</head>
+<body>
+    <h1>Chordlock WebAssembly Reverse Function Test</h1>
+    <div id="results"></div>
+    
+    <script src="chordlock.js"></script>
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(message) {
+            results.innerHTML += '<div>' + message + '</div>';
+            console.log(message);
+        }
+        
+        // Initialize Chordlock and test reverse functions
+        ChordlockModule().then(function(Module) {
+            const chordlock = Module;
+            chordlock.ccall('chordlock_init', null, [], []);
+            
+            log('✅ Chordlock initialized successfully');
+            
+            // Test 1: Basic chord name to notes
+            try {
+                const result1 = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['Cmaj7', 4]);
+                log('🎵 Test 1 - Cmaj7: ' + result1);
+            } catch (e) {
+                log('❌ Test 1 failed: ' + e.message);
+            }
+            
+            // Test 2: Complex chord
+            try {
+                const result2 = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['Gmaj7', 4]);
+                log('🎵 Test 2 - Gmaj7: ' + result2);
+            } catch (e) {
+                log('❌ Test 2 failed: ' + e.message);
+            }
+            
+            // Test 3: Ambiguous input
+            try {
+                const result3 = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['CM7', 4]);
+                log('🎵 Test 3 - CM7: ' + result3);
+            } catch (e) {
+                log('❌ Test 3 failed: ' + e.message);
+            }
+            
+            // Test 4: Alternatives
+            try {
+                const result4 = chordlock.ccall('chordlock_chord_name_to_notes_with_alternatives', 'string', ['string', 'number'], ['Gmaj7', 4]);
+                log('🔄 Test 4 - Gmaj7 alternatives: ' + result4);
+            } catch (e) {
+                log('❌ Test 4 failed: ' + e.message);
+            }
+            
+            // Test 5: Similar chords
+            try {
+                const result5 = chordlock.ccall('chordlock_find_similar_chord_names', 'string', ['string'], ['Cmaj7']);
+                log('🎼 Test 5 - Similar to Cmaj7: ' + result5);
+            } catch (e) {
+                log('❌ Test 5 failed: ' + e.message);
+            }
+            
+            // Test 6: Invalid chord
+            try {
+                const result6 = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], ['InvalidChord', 4]);
+                log('⚠️ Test 6 - InvalidChord: ' + result6);
+            } catch (e) {
+                log('❌ Test 6 failed: ' + e.message);
+            }
+            
+            log('✅ All tests completed');
+            
+        }).catch(function(err) {
+            log('❌ Failed to load Chordlock: ' + err);
+        });
+    </script>
+</body>
+</html>

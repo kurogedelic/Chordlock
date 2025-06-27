@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chordlock - Chord Name Input</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional styles specific to chord input app */
+        .chord-input-section {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chord-input-section h3 {
+            font-weight: 300;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .chord-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .chord-input:focus {
+            outline: none;
+            border-color: #000;
+        }
+        
+        .convert-btn {
+            padding: 12px 24px;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        
+        .convert-btn:hover {
+            background: #333;
+        }
+        
+        .convert-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .octave-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .octave-control label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .octave-select {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .notes-display {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .notes-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        
+        .notes-title {
+            font-size: 0.85rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .notes-list {
+            font-family: monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .chord-examples {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .examples-title {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .example-chord {
+            display: inline-block;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            border: 1px solid #ddd;
+            transition: all 0.2s;
+        }
+        
+        .example-chord:hover {
+            background: #000;
+            color: #fff;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fdf2f2;
+            border-radius: 4px;
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .similar-chords {
+            margin-top: 15px;
+        }
+        
+        .similar-title {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .similar-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .similar-chord {
+            background: #e8f4f8;
+            color: #2c3e50;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .similar-chord:hover {
+            background: #2c3e50;
+            color: #fff;
+        }
+        
+        .piano-highlight {
+            position: relative;
+        }
+        
+        .piano-highlight .key.highlighted::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 16px;
+            background: #e74c3c;
+            border-radius: 50%;
+            z-index: 10;
+        }
+        
+        .piano-highlight .black-key.highlighted::after {
+            background: #e74c3c;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+        }
+        
+        .alternatives-section {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        
+        .alternatives-title {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .alternative-item {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .alternative-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .alternative-notes {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">
+            Loading Chordlock...
+        </div>
+        
+        <div id="main-interface" style="display: none;">
+            <div class="main-grid">
+                <!-- Left Panel -->
+                <div class="left-panel">
+                    <!-- Chord Input Section -->
+                    <div class="chord-input-section">
+                        <h3>🎵 Chord Name Input</h3>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="chord-input" 
+                                   id="chordInput" 
+                                   placeholder="Enter chord name (e.g., Cmaj7, F#m, Bb7)" 
+                                   autocomplete="off">
+                            <button class="convert-btn" id="convertBtn" onclick="convertChord()">Convert</button>
+                        </div>
+                        <div class="octave-control">
+                            <label for="octaveSelect">Root Octave:</label>
+                            <select class="octave-select" id="octaveSelect">
+                                <option value="3">3</option>
+                                <option value="4" selected>4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
+                        
+                        <div class="chord-examples">
+                            <div class="examples-title">Quick Examples</div>
+                            <span class="example-chord" onclick="setChordInput('C')">C</span>
+                            <span class="example-chord" onclick="setChordInput('Cmaj7')">Cmaj7</span>
+                            <span class="example-chord" onclick="setChordInput('CM7')">CM7</span>
+                            <span class="example-chord" onclick="setChordInput('Dm')">Dm</span>
+                            <span class="example-chord" onclick="setChordInput('F#m')">F#m</span>
+                            <span class="example-chord" onclick="setChordInput('G7')">G7</span>
+                            <span class="example-chord" onclick="setChordInput('Am7')">Am7</span>
+                            <span class="example-chord" onclick="setChordInput('Bb13')">Bb13</span>
+                        </div>
+                        
+                        <div id="errorMessage" class="error-message" style="display: none;"></div>
+                        <div id="similarChords" class="similar-chords" style="display: none;"></div>
+                    </div>
+                    
+                    <!-- Piano Keyboard -->
+                    <div class="piano-container">
+                        <div class="piano-keyboard piano-highlight" id="piano">
+                            <!-- Keys will be generated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Panel -->
+                <div class="right-panel">
+                    <!-- Chord Display -->
+                    <div class="chord-display">
+                        <div class="chord-name" id="chordName">—</div>
+                        <div class="chord-info" id="chordInfo">Enter a chord name to see its notes</div>
+                    </div>
+                    
+                    <!-- Notes Display -->
+                    <div class="notes-display" id="notesDisplay" style="display: none;">
+                        <h3>📋 Note Information</h3>
+                        <div class="notes-grid">
+                            <div class="notes-section">
+                                <div class="notes-title">MIDI Notes</div>
+                                <div class="notes-list" id="midiNotes">—</div>
+                            </div>
+                            <div class="notes-section">
+                                <div class="notes-title">Note Names</div>
+                                <div class="notes-list" id="noteNames">—</div>
+                            </div>
+                        </div>
+                        
+                        <div id="alternativesSection" class="alternatives-section" style="display: none;">
+                            <div class="alternatives-title">Alternative Voicings</div>
+                            <div id="alternativesList"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Engine Information -->
+                    <div class="stats">
+                        <h3>ℹ️ Engine Information</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">Database Size</div>
+                                <div class="stat-value">339 chords</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Engine Version</div>
+                                <div class="stat-value" id="engineVersion">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="chordlock.js"></script>
+    <script>
+        let chordlock = null;
+        let currentNotes = [];
+        
+        // Initialize Chordlock
+        ChordlockModule().then(function(Module) {
+            chordlock = Module;
+            chordlock.ccall('chordlock_init', null, [], []);
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main-interface').style.display = 'block';
+            
+            generatePiano();
+            updateEngineInfo();
+            
+            // Add enter key support
+            document.getElementById('chordInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    convertChord();
+                }
+            });
+            
+        }).catch(function(err) {
+            console.error('Failed to load Chordlock:', err);
+            document.getElementById('loading').innerHTML = 'Failed to load engine';
+        });
+        
+        function generatePiano() {
+            const piano = document.getElementById('piano');
+            const whiteKeyWidth = 41; // 40px width + 1px border
+            
+            // White keys data with correct MIDI notes (extended range)
+            const whiteKeysData = [
+                { note: 48, name: 'C3' },   // C3
+                { note: 50, name: 'D3' },   // D3
+                { note: 52, name: 'E3' },   // E3
+                { note: 53, name: 'F3' },   // F3
+                { note: 55, name: 'G3' },   // G3
+                { note: 57, name: 'A3' },   // A3
+                { note: 59, name: 'B3' },   // B3
+                { note: 60, name: 'C4' },   // C4
+                { note: 62, name: 'D4' },   // D4
+                { note: 64, name: 'E4' },   // E4
+                { note: 65, name: 'F4' },   // F4
+                { note: 67, name: 'G4' },   // G4
+                { note: 69, name: 'A4' },   // A4
+                { note: 71, name: 'B4' },   // B4
+                { note: 72, name: 'C5' },   // C5
+                { note: 74, name: 'D5' },   // D5
+                { note: 76, name: 'E5' },   // E5
+            ];
+            
+            // Generate white keys
+            whiteKeysData.forEach((keyData, index) => {
+                const whiteKey = document.createElement('div');
+                whiteKey.className = 'key white-key';
+                whiteKey.textContent = keyData.name;
+                whiteKey.id = 'key-' + keyData.note;
+                whiteKey.style.left = (index * whiteKeyWidth) + 'px';
+                whiteKey.style.position = 'absolute';
+                piano.appendChild(whiteKey);
+            });
+            
+            // Black keys data with correct positioning
+            const blackKeysData = [
+                { note: 49, name: 'C#3', position: 29 },   // Between C3 and D3
+                { note: 51, name: 'D#3', position: 70 },   // Between D3 and E3
+                { note: 54, name: 'F#3', position: 152 },  // Between F3 and G3
+                { note: 56, name: 'G#3', position: 193 },  // Between G3 and A3
+                { note: 58, name: 'A#3', position: 234 },  // Between A3 and B3
+                { note: 61, name: 'C#4', position: 316 },  // Between C4 and D4
+                { note: 63, name: 'D#4', position: 357 },  // Between D4 and E4
+                { note: 66, name: 'F#4', position: 439 },  // Between F4 and G4
+                { note: 68, name: 'G#4', position: 480 },  // Between G4 and A4
+                { note: 70, name: 'A#4', position: 521 },  // Between A4 and B4
+                { note: 73, name: 'C#5', position: 603 },  // Between C5 and D5
+                { note: 75, name: 'D#5', position: 644 },  // Between D5 and E5
+            ];
+            
+            // Generate black keys
+            blackKeysData.forEach(({ note, name, position }) => {
+                const blackKey = document.createElement('div');
+                blackKey.className = 'key black-key';
+                blackKey.textContent = name;
+                blackKey.id = 'key-' + note;
+                blackKey.style.left = position + 'px';
+                piano.appendChild(blackKey);
+            });
+            
+            // Make piano wider to accommodate more keys
+            piano.style.width = '700px';
+        }
+        
+        function convertChord() {
+            const chordInput = document.getElementById('chordInput').value.trim();
+            const octave = parseInt(document.getElementById('octaveSelect').value);
+            
+            if (!chordInput) {
+                showError('Please enter a chord name');
+                return;
+            }
+            
+            if (!chordlock) {
+                showError('Engine not initialized');
+                return;
+            }
+            
+            hideError();
+            hideSimilarChords();
+            clearPianoHighlights();
+            
+            try {
+                // Get primary chord notes
+                const result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], [chordInput, octave]);
+                const chordData = JSON.parse(result);
+                
+                if (chordData.error || !chordData.notes || chordData.notes.length === 0) {
+                    // Try to find similar chords
+                    const similarResult = chordlock.ccall('chordlock_find_similar_chord_names', 'string', ['string'], [chordInput]);
+                    const similarData = JSON.parse(similarResult);
+                    
+                    showError(`Chord "${chordInput}" not found in database`);\n                    showSimilarChords(similarData.similar || []);
+                    resetDisplay();
+                    return;
+                }
+                
+                // Display the chord
+                displayChord(chordInput, chordData.notes, octave);
+                
+                // Get alternatives
+                const altResult = chordlock.ccall('chordlock_chord_name_to_notes_with_alternatives', 'string', ['string', 'number'], [chordInput, octave]);
+                const altData = JSON.parse(altResult);
+                
+                if (altData.alternatives && altData.alternatives.length > 1) {
+                    displayAlternatives(altData.alternatives.slice(1)); // Skip first (primary) result
+                }
+                
+            } catch (error) {
+                console.error('Conversion error:', error);
+                showError('Error processing chord: ' + error.message);
+                resetDisplay();
+            }
+        }
+        
+        function displayChord(chordName, notes, octave) {
+            currentNotes = notes;
+            
+            // Update main display
+            document.getElementById('chordName').textContent = chordName;
+            document.getElementById('chordInfo').textContent = `Root octave: ${octave} • ${notes.length} notes`;
+            
+            // Show notes display
+            document.getElementById('notesDisplay').style.display = 'block';
+            
+            // Update MIDI notes
+            document.getElementById('midiNotes').textContent = '[' + notes.join(', ') + ']';
+            
+            // Update note names
+            const noteNames = notes.map(note => {
+                const noteClass = note % 12;
+                const octave = Math.floor(note / 12) - 1;
+                const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                return `${names[noteClass]}${octave}`;
+            });
+            document.getElementById('noteNames').textContent = '[' + noteNames.join(', ') + ']';
+            
+            // Highlight piano keys
+            highlightPianoKeys(notes);
+        }
+        
+        function displayAlternatives(alternatives) {
+            if (alternatives.length === 0) {
+                document.getElementById('alternativesSection').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('alternativesSection').style.display = 'block';
+            const alternativesList = document.getElementById('alternativesList');
+            
+            alternativesList.innerHTML = '';
+            
+            alternatives.forEach((alt, index) => {
+                const altDiv = document.createElement('div');
+                altDiv.className = 'alternative-item';
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'alternative-name';
+                nameDiv.textContent = `Voicing ${index + 1}`;
+                
+                const notesDiv = document.createElement('div');
+                notesDiv.className = 'alternative-notes';
+                notesDiv.textContent = '[' + alt.join(', ') + ']';
+                
+                altDiv.appendChild(nameDiv);
+                altDiv.appendChild(notesDiv);
+                alternativesList.appendChild(altDiv);
+            });
+        }
+        
+        function highlightPianoKeys(notes) {
+            clearPianoHighlights();
+            
+            notes.forEach(note => {
+                const keyElement = document.getElementById('key-' + note);
+                if (keyElement) {
+                    keyElement.classList.add('highlighted');
+                }
+            });
+        }
+        
+        function clearPianoHighlights() {
+            document.querySelectorAll('.key.highlighted').forEach(key => {
+                key.classList.remove('highlighted');
+            });
+        }
+        
+        function setChordInput(chordName) {
+            document.getElementById('chordInput').value = chordName;
+            convertChord();
+        }
+        
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        function showSimilarChords(similarChords) {
+            if (similarChords.length === 0) return;
+            
+            const similarElement = document.getElementById('similarChords');
+            similarElement.innerHTML = `
+                <div class="similar-title">Did you mean one of these?</div>
+                <div class="similar-list">
+                    ${similarChords.slice(0, 10).map(chord => 
+                        `<span class="similar-chord" onclick="setChordInput('${chord}')">${chord}</span>`
+                    ).join('')}
+                </div>
+            `;
+            similarElement.style.display = 'block';
+        }
+        
+        function hideSimilarChords() {
+            document.getElementById('similarChords').style.display = 'none';
+        }
+        
+        function resetDisplay() {
+            document.getElementById('chordName').textContent = '—';
+            document.getElementById('chordInfo').textContent = 'Enter a chord name to see its notes';
+            document.getElementById('notesDisplay').style.display = 'none';
+            document.getElementById('alternativesSection').style.display = 'none';
+            currentNotes = [];
+            clearPianoHighlights();
+        }
+        
+        function updateEngineInfo() {
+            if (!chordlock) return;
+            
+            try {
+                const version = chordlock.ccall('chordlock_get_version', 'string', [], []);
+                document.getElementById('engineVersion').textContent = version;
+            } catch (error) {
+                console.error('Failed to get engine info:', error);
+            }
+        }
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (chordlock) {
+                chordlock.ccall('chordlock_cleanup', null, [], []);
+            }
+        });
+    </script>
+</body>
+</html>

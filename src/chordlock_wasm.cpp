@@ -283,6 +283,72 @@ const char* chordlock_benchmark_performance(int iterations) {
     return result.c_str();
 }
 
+// Reverse chord lookup functions
+EMSCRIPTEN_KEEPALIVE
+const char* chordlock_chord_name_to_notes_json(const char* chordName, int octave) {
+    if (!g_chordlock || !chordName) {
+        return "{\"chord\":\"\",\"notes\":[],\"octave\":4,\"error\":\"Invalid input\"}";
+    }
+    
+    static std::string result;
+    result = g_chordlock->chordNameToNotesJSON(std::string(chordName), octave);
+    return result.c_str();
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* chordlock_chord_name_to_notes_with_alternatives(const char* chordName, int octave) {
+    if (!g_chordlock || !chordName) {
+        return "{\"chord\":\"\",\"alternatives\":[],\"octave\":4,\"error\":\"Invalid input\"}";
+    }
+    
+    auto alternatives = g_chordlock->chordNameToNotesWithAlternatives(std::string(chordName), octave);
+    
+    static std::string result;
+    result = "{";
+    result += "\"chord\":\"" + std::string(chordName) + "\",";
+    result += "\"octave\":" + std::to_string(octave) + ",";
+    result += "\"alternatives\":[";
+    
+    for (size_t i = 0; i < alternatives.size(); i++) {
+        result += "[";
+        for (size_t j = 0; j < alternatives[i].size(); j++) {
+            result += std::to_string(alternatives[i][j]);
+            if (j < alternatives[i].size() - 1) result += ",";
+        }
+        result += "]";
+        if (i < alternatives.size() - 1) result += ",";
+    }
+    
+    result += "]";
+    result += "}";
+    
+    return result.c_str();
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* chordlock_find_similar_chord_names(const char* input) {
+    if (!g_chordlock || !input) {
+        return "{\"input\":\"\",\"similar\":[],\"error\":\"Invalid input\"}";
+    }
+    
+    auto similar = g_chordlock->findSimilarChordNames(std::string(input));
+    
+    static std::string result;
+    result = "{";
+    result += "\"input\":\"" + std::string(input) + "\",";
+    result += "\"similar\":[";
+    
+    for (size_t i = 0; i < similar.size(); i++) {
+        result += "\"" + similar[i] + "\"";
+        if (i < similar.size() - 1) result += ",";
+    }
+    
+    result += "]";
+    result += "}";
+    
+    return result.c_str();
+}
+
 } // extern "C"
 
 // Emscripten bindings for modern JavaScript (optional, but nice to have)
@@ -307,4 +373,9 @@ EMSCRIPTEN_BINDINGS(chordlock_v3) {
     emscripten::function("calculateComplexity", &chordlock_calculate_complexity);
     emscripten::function("testDominant11th", &chordlock_test_dominant_11th, emscripten::allow_raw_pointers());
     emscripten::function("benchmarkPerformance", &chordlock_benchmark_performance, emscripten::allow_raw_pointers());
+    
+    // Reverse chord lookup functions
+    emscripten::function("chordNameToNotesJSON", &chordlock_chord_name_to_notes_json, emscripten::allow_raw_pointers());
+    emscripten::function("chordNameToNotesWithAlternatives", &chordlock_chord_name_to_notes_with_alternatives, emscripten::allow_raw_pointers());
+    emscripten::function("findSimilarChordNames", &chordlock_find_similar_chord_names, emscripten::allow_raw_pointers());
 }

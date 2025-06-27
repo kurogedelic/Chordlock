@@ -40,6 +40,10 @@ python3 -m http.server 8000 --directory web
 # Open http://localhost:8000 in browser
 ```
 
+**Available Web Applications:**
+- **index.html**: Interactive chord detection with virtual piano and MIDI input
+- **chord-input.html**: Chord name input → visual piano display with note information
+
 ### C++ Usage
 ```cpp
 #include "Chordlock.hpp"
@@ -164,13 +168,20 @@ chordlock_note_on(67, 80);
 const result = chordlock_detect_chord();
 console.log(result); // "C"
 
-// Reverse lookup
+// Reverse lookup: chord name → MIDI notes
 const json = chordlock_chord_name_to_notes_json("Cmaj7", 4);
 const data = JSON.parse(json);
 console.log(data.notes); // [48, 52, 55, 59]
 
-// Alternative voicings
+// Alternative voicings for composition
 const alternatives = chordlock_chord_name_to_notes_with_alternatives("GM7", 4);
+const altData = JSON.parse(alternatives);
+console.log(altData.alternatives); // [[57,61,62,66], ...]
+
+// Find similar chords for ambiguous inputs
+const similar = chordlock_find_similar_chord_names("F#m");
+const similarData = JSON.parse(similar);
+console.log(similarData.similar); // ["Gbm", "F#dim", ...]
 ```
 
 ## Project Structure
@@ -185,7 +196,8 @@ src/
 └── enhanced_chord_hash_table.hpp    # 339-chord database
 
 web/
-├── index.html                       # Interactive demo with bidirectional features
+├── index.html                       # Interactive chord detection demo
+├── chord-input.html                 # Chord name input application
 ├── styles.css                       # UI styling
 └── chordlock.{js,wasm}             # WebAssembly build
 
