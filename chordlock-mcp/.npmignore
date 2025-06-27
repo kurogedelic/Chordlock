@@ -1,0 +1,29 @@
+# Source files
+src/
+tsconfig.json
+test-mcp.js
+
+# Development files
+*.log
+.DS_Store
+node_modules/
+
+# Git files
+.git/
+.gitignore
+
+# Testing and development
+test/
+tests/
+*.test.js
+*.test.ts
+coverage/
+
+# Documentation source
+docs/src/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
