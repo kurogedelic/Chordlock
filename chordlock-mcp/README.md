@@ -1,6 +1,6 @@
 # Chordlock MCP Server
 
-**AI-powered music analysis and composition through Model Context Protocol (MCP)**
+**Music analysis and composition through Model Context Protocol (MCP)**
 
 [![npm version](https://badge.fury.io/js/chordlock-mcp.svg)](https://www.npmjs.com/package/chordlock-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -213,6 +213,10 @@ See [API Documentation](./docs/api.md) for detailed type definitions and usage e
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+---
+
+*Built for musicians, developers, and enthusiasts who demand accurate and fast music analysis.*
+
 ## License
 
 MIT License - see [LICENSE](../LICENSE) for details.
@@ -221,11 +225,9 @@ MIT License - see [LICENSE](../LICENSE) for details.
 
 **Leo Kuroshita** ([@kurogedelic](https://github.com/kurogedelic))
 
+© 2024-2025 Leo Kuroshita. All rights reserved.
+
 ## Related Projects
 
 - **[Chordlock Core](https://github.com/kurogedelic/Chordlock)** - The underlying C++ chord detection engine
 - **[Chordlock Web Demo](https://kurogedelic.github.io/Chordlock/)** - Interactive browser-based chord detection
-
----
-
-*Built for musicians, developers, and AI enthusiasts who demand accurate and fast music analysis.*

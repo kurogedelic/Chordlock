@@ -1,7 +1,7 @@
 {
   "name": "@kurogedelic/chordlock-mcp",
   "version": "1.0.0",
-  "description": "Chordlock Model Context Protocol (MCP) server for AI-powered music analysis and composition",
+  "description": "Chordlock Model Context Protocol (MCP) server for music analysis and composition",
   "main": "dist/index.js",
   "bin": {
     "chordlock-mcp": "dist/index.js"

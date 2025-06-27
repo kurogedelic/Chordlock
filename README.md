@@ -20,7 +20,7 @@ A modern C++17 chord detection library with WebAssembly support and AI integrati
 ⚡ **Cross-Platform**
 - **C++ Library**: Native performance for desktop applications
 - **WebAssembly**: Browser compatibility with interactive demos
-- **MCP Integration**: AI-powered music analysis for Claude Code/Desktop
+- **MCP Integration**: Music analysis for Claude Code/Desktop
 
 ## Quick Start
 
@@ -46,7 +46,7 @@ cd Chordlock
 
 ### 🤖 AI Integration (MCP)
 
-Chordlock now supports **Model Context Protocol** for AI-powered music analysis:
+Chordlock now supports **Model Context Protocol** for music analysis:
 
 ```bash
 # Install MCP package
@@ -129,6 +129,10 @@ CLI Application         →  MCP Server        →  AI Integration
 - **Emscripten** for WebAssembly builds
 - **Node.js 16+** for MCP integration
 
+---
+
+*Built for musicians, developers, and enthusiasts who demand accurate and fast music analysis.*
+
 ## License
 
 MIT License
@@ -137,6 +141,4 @@ MIT License
 
 **Leo Kuroshita** ([@kurogedelic](https://github.com/kurogedelic))
 
----
-
-*Built for musicians, developers, and AI enthusiasts who demand accurate and fast music analysis.*
+© 2024-2025 Leo Kuroshita. All rights reserved.
