@@ -470,7 +470,8 @@
                     const similarResult = chordlock.ccall('chordlock_find_similar_chord_names', 'string', ['string'], [chordInput]);
                     const similarData = JSON.parse(similarResult);
                     
-                    showError(`Chord "${chordInput}" not found in database`);\n                    showSimilarChords(similarData.similar || []);
+                    showError(`Chord "${chordInput}" not found in database`);
+                    showSimilarChords(similarData.similar || []);
                     resetDisplay();
                     return;
                 }
