@@ -207,7 +207,10 @@ if [ "$EMSCRIPTEN_AVAILABLE" = true ]; then
             "_chordlock_calculate_complexity",
             "_chordlock_set_chord_from_array",
             "_chordlock_test_dominant_11th",
-            "_chordlock_benchmark_performance"
+            "_chordlock_benchmark_performance",
+            "_chordlock_chord_name_to_notes_json",
+            "_chordlock_chord_name_to_notes_with_alternatives",
+            "_chordlock_find_similar_chord_names"
         ]' \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s INITIAL_MEMORY=16MB \

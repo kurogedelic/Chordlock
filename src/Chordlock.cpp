@@ -416,9 +416,17 @@ std::vector<int> Chordlock::chordNameToNotes(const std::string& chordName, int r
         return {}; // Invalid chord name
     }
     
+    // Priority: Try theoretical calculation first for known chord types (provides root position)
+    if (isKnownChordType(spec.quality)) {
+        auto theoreticalNotes = calculateTheoreticalChord(chordName, rootOctave);
+        if (!theoreticalNotes.empty()) {
+            return theoreticalNotes;
+        }
+    }
+    
     std::string normalizedInput = normalizeChordName(chordName);
     
-    // Primary search: exact match with root and quality
+    // Fallback: Hash table search (may return inversions)
     for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
         std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
         std::string tableRoot = std::string(ENHANCED_CHORD_TABLE[i].root);
@@ -600,12 +608,33 @@ std::string Chordlock::chordNameToNotesJSON(const std::string& chordName, int ro
     
     std::ostringstream json;
     json << "{\"chord\":\"" << chordName << "\",\"notes\":[";
-    for (size_t i = 0; i < notes.size(); i++) {
-        json << notes[i];
-        if (i < notes.size() - 1) json << ",";
-    }
-    json << "],\"octave\":" << rootOctave << "}";
     
+    if (notes.empty()) {
+        // Chord not found - provide error and suggestions
+        json << "],\"octave\":" << rootOctave << ",\"found\":false,";
+        json << "\"error\":\"Chord not found in database\",";
+        
+        // Find similar chord suggestions
+        auto suggestions = findSimilarChordNames(chordName);
+        json << "\"suggestions\":[";
+        
+        // Limit suggestions to first 8 for reasonable response size
+        size_t maxSuggestions = std::min(suggestions.size(), static_cast<size_t>(8));
+        for (size_t i = 0; i < maxSuggestions; i++) {
+            json << "\"" << suggestions[i] << "\"";
+            if (i < maxSuggestions - 1) json << ",";
+        }
+        json << "]";
+    } else {
+        // Chord found successfully
+        for (size_t i = 0; i < notes.size(); i++) {
+            json << notes[i];
+            if (i < notes.size() - 1) json << ",";
+        }
+        json << "],\"octave\":" << rootOctave << ",\"found\":true";
+    }
+    
+    json << "}";
     return json.str();
 }
 
@@ -872,4 +901,113 @@ std::vector<std::string> Chordlock::generateChordAlternatives(const std::string&
     }
     
     return alternatives;
+}
+
+// Theoretical chord calculation for missing chords
+std::vector<int> Chordlock::calculateTheoreticalChord(const std::string& chordName, int rootOctave) {
+    ChordSpec spec = parseChordName(chordName);
+    if (spec.rootNote == -1) {
+        return {}; // Invalid chord name
+    }
+    
+    std::vector<int> intervals = getIntervalsForQuality(spec.quality);
+    if (intervals.empty()) {
+        return {}; // Unknown chord type
+    }
+    
+    std::vector<int> notes;
+    int baseNote = spec.rootNote + (rootOctave * 12);
+    
+    for (int interval : intervals) {
+        notes.push_back(baseNote + interval);
+    }
+    
+    return notes;
+}
+
+bool Chordlock::isKnownChordType(const std::string& quality) {
+    return !getIntervalsForQuality(quality).empty();
+}
+
+std::vector<int> Chordlock::getIntervalsForQuality(const std::string& quality) {
+    // Normalize quality for comparison
+    std::string normalizedQuality = quality;
+    std::transform(normalizedQuality.begin(), normalizedQuality.end(), 
+                   normalizedQuality.begin(), ::tolower);
+    
+    // Basic triads
+    if (normalizedQuality.empty() || normalizedQuality == "maj" || normalizedQuality == "major") {
+        return {0, 4, 7}; // Major: root, major 3rd, 5th
+    }
+    if (normalizedQuality == "m" || normalizedQuality == "min" || normalizedQuality == "minor") {
+        return {0, 3, 7}; // Minor: root, minor 3rd, 5th
+    }
+    if (normalizedQuality == "dim" || normalizedQuality == "diminished") {
+        return {0, 3, 6}; // Diminished: root, minor 3rd, diminished 5th
+    }
+    if (normalizedQuality == "aug" || normalizedQuality == "augmented" || normalizedQuality == "+") {
+        return {0, 4, 8}; // Augmented: root, major 3rd, augmented 5th
+    }
+    
+    // Suspended chords
+    if (normalizedQuality == "sus4") {
+        return {0, 5, 7}; // Sus4: root, 4th, 5th
+    }
+    if (normalizedQuality == "sus2") {
+        return {0, 2, 7}; // Sus2: root, 2nd, 5th
+    }
+    
+    // Power chord
+    if (normalizedQuality == "5") {
+        return {0, 7}; // Power chord: root, 5th
+    }
+    
+    // 7th chords
+    if (normalizedQuality == "7" || normalizedQuality == "dom7") {
+        return {0, 4, 7, 10}; // Dominant 7th: root, major 3rd, 5th, minor 7th
+    }
+    if (normalizedQuality == "m7" || normalizedQuality == "min7") {
+        return {0, 3, 7, 10}; // Minor 7th: root, minor 3rd, 5th, minor 7th
+    }
+    if (normalizedQuality == "maj7" || normalizedQuality == "major7") {
+        return {0, 4, 7, 11}; // Major 7th: root, major 3rd, 5th, major 7th
+    }
+    if (normalizedQuality == "m7b5" || normalizedQuality == "min7b5" || normalizedQuality == "ø") {
+        return {0, 3, 6, 10}; // Half-diminished: root, minor 3rd, dim 5th, minor 7th
+    }
+    if (normalizedQuality == "dim7" || normalizedQuality == "°7") {
+        return {0, 3, 6, 9}; // Diminished 7th: root, minor 3rd, dim 5th, dim 7th
+    }
+    
+    // 6th chords
+    if (normalizedQuality == "6") {
+        return {0, 4, 7, 9}; // Major 6th: root, major 3rd, 5th, 6th
+    }
+    if (normalizedQuality == "m6" || normalizedQuality == "min6") {
+        return {0, 3, 7, 9}; // Minor 6th: root, minor 3rd, 5th, 6th
+    }
+    
+    // Add chords
+    if (normalizedQuality == "add9") {
+        return {0, 4, 7, 14}; // Add 9: root, major 3rd, 5th, 9th (2nd octave up)
+    }
+    if (normalizedQuality == "add2") {
+        return {0, 2, 4, 7}; // Add 2: root, 2nd, major 3rd, 5th
+    }
+    if (normalizedQuality == "add4") {
+        return {0, 4, 5, 7}; // Add 4: root, major 3rd, 4th, 5th
+    }
+    
+    // Extended chords (basic approximations)
+    if (normalizedQuality == "9") {
+        return {0, 4, 7, 10, 14}; // Dominant 9th: includes 7th + 9th
+    }
+    if (normalizedQuality == "11") {
+        return {0, 4, 7, 10, 14, 17}; // Dominant 11th: includes 7th + 9th + 11th
+    }
+    if (normalizedQuality == "13") {
+        return {0, 4, 7, 10, 14, 21}; // Dominant 13th: includes 7th + 9th + 13th
+    }
+    
+    return {}; // Unknown chord type
 }

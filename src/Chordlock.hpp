@@ -153,4 +153,9 @@ private:
     int noteNameToNumber(const std::string& noteName);
     std::vector<int> maskToNoteNumbers(uint16_t mask, int rootNote, int octave);
     std::vector<std::string> generateChordAlternatives(const std::string& input);
+    
+    // Theoretical chord calculation for missing chords
+    std::vector<int> calculateTheoreticalChord(const std::string& chordName, int rootOctave);
+    bool isKnownChordType(const std::string& quality);
+    std::vector<int> getIntervalsForQuality(const std::string& quality);
 };

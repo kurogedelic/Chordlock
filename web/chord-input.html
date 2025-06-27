@@ -465,13 +465,22 @@
                 const result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], [chordInput, octave]);
                 const chordData = JSON.parse(result);
                 
-                if (chordData.error || !chordData.notes || chordData.notes.length === 0) {
-                    // Try to find similar chords
-                    const similarResult = chordlock.ccall('chordlock_find_similar_chord_names', 'string', ['string'], [chordInput]);
-                    const similarData = JSON.parse(similarResult);
+                if (!chordData.found || chordData.error || !chordData.notes || chordData.notes.length === 0) {
+                    // Use improved error handling with built-in suggestions
+                    const errorMessage = chordData.error || `Chord "${chordInput}" not found in database`;
+                    const suggestions = chordData.suggestions || [];
                     
-                    showError(`Chord "${chordInput}" not found in database`);
-                    showSimilarChords(similarData.similar || []);
+                    showError(errorMessage);
+                    
+                    if (suggestions.length > 0) {
+                        showSimilarChords(suggestions);
+                    } else {
+                        // Fallback to separate similarity search if no built-in suggestions
+                        const similarResult = chordlock.ccall('chordlock_find_similar_chord_names', 'string', ['string'], [chordInput]);
+                        const similarData = JSON.parse(similarResult);
+                        showSimilarChords(similarData.similar || []);
+                    }
+                    
                     resetDisplay();
                     return;
                 }
