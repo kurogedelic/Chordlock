@@ -79,7 +79,7 @@ REQUIRED_FILES=(
     "src/engines/EnhancedHashLookupEngine.cpp"
     "src/processors/VelocityProcessor.hpp"
     "src/processors/VelocityProcessor.cpp"
-    "assets/dataset.json"
+    "src/enhanced_chord_hash_table.hpp"
 )
 
 ALL_FILES_PRESENT=true
@@ -97,35 +97,37 @@ if [ "$ALL_FILES_PRESENT" = false ]; then
     exit 1
 fi
 
-# Generate enhanced hash table if needed
-print_header "Generating Enhanced Hash Table"
-if [ ! -f "src/enhanced_chord_hash_table.hpp" ]; then
-    if [ -f "tools/generate_enhanced_hash_table.py" ] && command -v python3 &> /dev/null; then
-        print_info "Generating enhanced hash table from fixed dataset..."
-        python3 tools/generate_enhanced_hash_table.py assets/dataset.json src/enhanced_chord_hash_table.hpp
-        if [ $? -eq 0 ]; then
-            print_status "Enhanced hash table generated successfully"
-        else
-            print_error "Hash table generation failed"
-            exit 1
-        fi
-    else
-        print_error "Cannot generate hash table - missing Python or generator script"
-        exit 1
-    fi
-else
+# Check enhanced hash table 
+print_header "Checking Enhanced Hash Table"
+if [ -f "src/enhanced_chord_hash_table.hpp" ]; then
     print_status "Enhanced hash table already exists"
+else
+    print_error "Enhanced hash table not found at src/enhanced_chord_hash_table.hpp"
+    exit 1
 fi
 
 # Build 1: Chordlock Test Application
 print_header "Building Chordlock Test Application"
-g++ -std=c++17 -O2 -Wall -Wextra \
-    -I src \
-    src/cli_main.cpp \
-    src/Chordlock.cpp \
-    src/engines/EnhancedHashLookupEngine.cpp \
-    src/processors/VelocityProcessor.cpp \
-    -o build/chordlock_test
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS - add CoreMIDI and CoreFoundation frameworks
+    g++ -std=c++17 -O2 -Wall -Wextra \
+        -I src \
+        src/cli_main.cpp \
+        src/Chordlock.cpp \
+        src/engines/EnhancedHashLookupEngine.cpp \
+        src/processors/VelocityProcessor.cpp \
+        -framework CoreMIDI -framework CoreFoundation \
+        -o build/chordlock_test
+else
+    # Linux/Other - no frameworks needed
+    g++ -std=c++17 -O2 -Wall -Wextra \
+        -I src \
+        src/cli_main.cpp \
+        src/Chordlock.cpp \
+        src/engines/EnhancedHashLookupEngine.cpp \
+        src/processors/VelocityProcessor.cpp \
+        -o build/chordlock_test
+fi
 
 if [ $? -eq 0 ]; then
     print_status "Test application built: build/chordlock_test"
