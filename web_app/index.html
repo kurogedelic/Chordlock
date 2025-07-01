@@ -4,190 +4,274 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chordlock - Advanced Chord Detection</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1d1d1f;
+            --accent-color: #007aff;
+            --secondary-bg: #f5f5f7;
+            --border-color: #d1d1d6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --text-color: #f5f5f7;
+                --accent-color: #0a84ff;
+                --secondary-bg: #1c1c1e;
+                --border-color: #38383a;
+                --card-bg: #1c1c1e;
+                --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            }
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: all 0.2s ease;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        
+        .hero {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent-color), #5856d6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero p {
+            font-size: 1.5rem;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        
+        .app-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+        
+        .app-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+            border-color: var(--accent-color);
+        }
+        
+        .app-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+        
+        .app-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-color);
+        }
+        
+        .app-card p {
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+        
+        .app-link {
+            display: inline-block;
+            background: var(--accent-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .app-link:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .features {
+            background: var(--secondary-bg);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .features h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-color);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature-item {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+        
+        .feature-item h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+        
+        .feature-item p {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+        
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1>🎵 Chordlock v2.0</h1>
-            <p>Key-Context Aware MIDI Chord Detection with Enhanced Functional Harmony</p>
-        </header>
+        <div class="hero">
+            <h1>🎵 Chordlock</h1>
+            <p>Advanced MIDI chord detection with key-context awareness and functional harmony analysis</p>
+        </div>
 
-        <div class="main-grid">
-            <!-- Left Panel - Audio Controls & Visualization -->
-            <div class="left-panel">
-                <!-- Audio Upload & Controls -->
-                <div class="audio-section">
-                    <h3>📁 Audio Input</h3>
-                    <div class="audio-controls">
-                        <input type="file" id="audioFile" accept="audio/*" />
-                        <button id="playBtn" disabled>Play</button>
-                        <button id="pauseBtn" disabled>Pause</button>
-                        <button id="stopBtn" disabled>Stop</button>
-                    </div>
-                    <div class="audio-info">
-                        <span id="audioTime">00:00 / 00:00</span>
-                        <input type="range" id="progressBar" min="0" max="100" value="0" disabled />
-                    </div>
-                </div>
-
-                <!-- Spectrum Visualization -->
-                <div class="visualization-section">
-                    <h3>📊 Frequency Spectrum</h3>
-                    <canvas id="spectrumCanvas" width="800" height="300"></canvas>
-                </div>
-
-                <!-- Piano Roll Visualization -->
-                <div class="piano-section">
-                    <h3>🎹 Note Activity</h3>
-                    <canvas id="pianoCanvas" width="800" height="200"></canvas>
-                </div>
+        <div class="apps-grid">
+            <div class="app-card">
+                <div class="app-icon">🎹</div>
+                <h3>Simple Piano</h3>
+                <p>Interactive piano interface for real-time chord detection and testing</p>
+                <a href="simple-piano.html" class="app-link">Open Piano</a>
             </div>
 
-            <!-- Right Panel - Chord Analysis -->
-            <div class="right-panel">
-                <!-- Current Chord Display -->
-                <div class="chord-display">
-                    <h3>🎯 Detected Chord</h3>
-                    <div class="current-chord">
-                        <div class="chord-name" id="currentChord">—</div>
-                        <div class="chord-confidence">
-                            Confidence: <span id="confidence">—</span>
-                        </div>
-                        <div class="chord-function" id="chordFunction">
-                            Function: <span id="chordFunctionValue">—</span>
-                        </div>
-                        <div class="chord-role" id="chordRole">
-                            Role: <span id="chordRoleValue">—</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="app-card">
+                <div class="app-icon">📚</div>
+                <h3>Chord Dictionary</h3>
+                <p>Convert between chord names and MIDI notes with visual piano display</p>
+                <a href="dictionary.html" class="app-link">Open Dictionary</a>
+            </div>
 
-                <!-- Chord Candidates -->
-                <div class="candidates-section">
-                    <h3>🎼 Candidate Analysis</h3>
-                    <div class="candidates-list" id="candidatesList">
-                        <div class="candidate-item">
-                            <span class="candidate-name">No audio detected</span>
-                            <span class="candidate-score">—</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="app-card">
+                <div class="app-icon">🎵</div>
+                <h3>Audio Analysis</h3>
+                <p>Real-time audio chord detection with frequency spectrum visualization</p>
+                <a href="#" class="app-link" onclick="showComingSoon()">Coming Soon</a>
+            </div>
+        </div>
 
-                <!-- Analysis Settings -->
-                <div class="settings-section">
-                    <h3>⚙️ Analysis Settings</h3>
-                    <div class="setting-item">
-                        <label for="sensitivity">Note Sensitivity:</label>
-                        <input type="range" id="sensitivity" min="0.1" max="2.0" step="0.1" value="1.0" />
-                        <span id="sensitivityValue">1.0</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="smoothing">Temporal Smoothing:</label>
-                        <input type="range" id="smoothing" min="0.0" max="0.9" step="0.1" value="0.8" />
-                        <span id="smoothingValue">0.8</span>
-                    </div>
-                    <div class="setting-item">
-                        <label for="threshold">Threshold:</label>
-                        <input type="range" id="threshold" min="0.01" max="0.5" step="0.01" value="0.1" />
-                        <span id="thresholdValue">0.1</span>
-                    </div>
+        <div class="features">
+            <h2>🚀 Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">🔥</div>
+                    <h4>Key-Context Aware</h4>
+                    <p>World-first chord detection considering musical key context</p>
                 </div>
-
-                <!-- Key Analysis -->
-                <div class="key-analysis-section">
-                    <h3>🎼 Key Analysis</h3>
-                    <div class="key-info">
-                        <div class="current-key">
-                            <span class="key-label">Current Key:</span>
-                            <span id="currentKey" class="key-display">—</span>
-                            <span id="keySignature" class="key-signature"></span>
-                        </div>
-                        <div class="key-confidence">
-                            <span class="confidence-label">Confidence:</span>
-                            <span id="keyConfidence" class="confidence-value">—</span>
-                        </div>
-                    </div>
-                    <div class="key-controls">
-                        <div class="key-mode-selector">
-                            <label for="keyDetectionMode">Detection Mode:</label>
-                            <select id="keyDetectionMode">
-                                <option value="auto">Auto (K-S + Progression)</option>
-                                <option value="progression-analysis">Progression Analysis</option>
-                                <option value="first-chord">First Chord</option>
-                                <option value="manual">Manual</option>
-                            </select>
-                        </div>
-                        <div class="manual-key-selector" id="manualKeySelector" style="display: none;">
-                            <select id="manualKey">
-                                <option value="C">C</option>
-                                <option value="C#">C#</option>
-                                <option value="D">D</option>
-                                <option value="D#">D#</option>
-                                <option value="E">E</option>
-                                <option value="F">F</option>
-                                <option value="F#">F#</option>
-                                <option value="G">G</option>
-                                <option value="G#">G#</option>
-                                <option value="A">A</option>
-                                <option value="A#">A#</option>
-                                <option value="B">B</option>
-                            </select>
-                            <select id="manualMode">
-                                <option value="major">Major</option>
-                                <option value="minor">Minor</option>
-                            </select>
-                            <button id="applyManualKey">Apply</button>
-                        </div>
-                    </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">🎼</div>
+                    <h4>Roman Numeral Analysis</h4>
+                    <p>Automatic functional harmony analysis with degree conversion</p>
                 </div>
-
-                <!-- Statistics -->
-                <div class="stats-section">
-                    <h3>📈 Analysis Stats</h3>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-label">Processing Time</div>
-                            <div class="stat-value" id="processingTime">—</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Active Notes</div>
-                            <div class="stat-value" id="activeNotes">0</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Sample Rate</div>
-                            <div class="stat-value" id="sampleRate">—</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">FFT Size</div>
-                            <div class="stat-value" id="fftSize">4096</div>
-                        </div>
-                    </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <h4>High Performance</h4>
+                    <p>Sub-millisecond detection with C++ optimization</p>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">🎵</div>
+                    <h4>Advanced Chords</h4>
+                    <p>339+ chord types including complex jazz harmony</p>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">🔧</div>
+                    <h4>Multiple Interfaces</h4>
+                    <p>CLI, WebAssembly, and interactive web applications</p>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">🤖</div>
+                    <h4>AI Integration</h4>
+                    <p>Works with Claude via Model Context Protocol</p>
                 </div>
             </div>
         </div>
 
-        <footer class="footer">
-            <p>Powered by <a href="https://github.com/kurogedelic/Chordlock" target="_blank">Chordlock v3</a> - Real-time chord detection engine</p>
-        </footer>
-    </div>
-
-    <!-- Loading indicator -->
-    <div id="loading" class="loading-overlay">
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <p>Loading Chordlock Engine...</p>
+        <div class="footer">
+            <p>Powered by <a href="https://github.com/kurogedelic/Chordlock" target="_blank">Chordlock v2.0</a> - Real-time chord detection engine</p>
+            <p>© 2024-2025 Leo Kuroshita (@kurogedelic)</p>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="chordlock.js?v=11"></script>
-    <script src="audio-analyzer.js?v=11"></script>
-    <script src="note-detector.js?v=11"></script>
-    <script src="chroma-detector.js?v=15"></script>
-    <script src="key-analyzer.js?v=1"></script>
-    <script src="spectrum-visualizer.js?v=11"></script>
-    <script src="chord-display.js?v=11"></script>
-    <script src="app.js?v=16"></script>
+    <script>
+        function showComingSoon() {
+            alert('Audio analysis feature coming soon! \n\nCurrently available:\n• Simple Piano - Interactive chord testing\n• Chord Dictionary - Name ↔ Notes conversion');
+        }
+    </script>
 </body>
 </html>
