@@ -47,6 +47,45 @@
             padding: 60px 20px;
         }
         
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-btn:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .nav-btn.disabled {
+            background: var(--border-color);
+            color: var(--text-color);
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .nav-btn.disabled:hover {
+            background: var(--border-color);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        
         .hero {
             text-align: center;
             margin-bottom: 80px;
@@ -193,6 +232,15 @@
 </head>
 <body>
     <div class="container">
+        <div class="nav-bar">
+            <a href="index.html" class="nav-btn" style="background: var(--accent-color); color: white;">🏠 Home</a>
+            <a href="simple-piano.html" class="nav-btn">🎹 Piano</a>
+            <a href="dictionary.html" class="nav-btn">📚 Dictionary</a>
+            <a href="#" class="nav-btn disabled">🎵 Audio</a>
+            <a href="https://github.com/kurogedelic/Chordlock" target="_blank" class="nav-btn">📦 GitHub</a>
+            <a href="https://kurogedelic.github.io/Chordlock/docs/" target="_blank" class="nav-btn">📖 API</a>
+        </div>
+        
         <div class="hero">
             <h1>🎵 Chordlock</h1>
             <p>Advanced MIDI chord detection with key-context awareness and functional harmony analysis</p>
@@ -217,7 +265,7 @@
                 <div class="app-icon">🎵</div>
                 <h3>Audio Analysis</h3>
                 <p>Real-time audio chord detection with frequency spectrum visualization</p>
-                <a href="#" class="app-link" onclick="showComingSoon()">Coming Soon</a>
+                <a href="#" class="app-link" onclick="showComingSoon()" style="background: var(--border-color); opacity: 0.5; cursor: not-allowed;">Coming Soon</a>
             </div>
         </div>
 

@@ -47,6 +47,45 @@
             padding: 40px 20px;
         }
         
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-btn:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .nav-btn.disabled {
+            background: var(--border-color);
+            color: var(--text-color);
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .nav-btn.disabled:hover {
+            background: var(--border-color);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        
         .header {
             text-align: center;
             margin-bottom: 40px;
@@ -253,6 +292,15 @@
 
     <div id="main-interface" style="display: none;">
         <div class="container">
+            <div class="nav-bar">
+                <a href="index.html" class="nav-btn">🏠 Home</a>
+                <a href="simple-piano.html" class="nav-btn" style="background: var(--accent-color); color: white;">🎹 Piano</a>
+                <a href="dictionary.html" class="nav-btn">📚 Dictionary</a>
+                <a href="#" class="nav-btn disabled">🎵 Audio</a>
+                <a href="https://github.com/kurogedelic/Chordlock" target="_blank" class="nav-btn">📦 GitHub</a>
+                <a href="https://kurogedelic.github.io/Chordlock/docs/" target="_blank" class="nav-btn">📖 API</a>
+            </div>
+            
             <div class="header">
                 <h1>🎹 Simple Piano</h1>
                 <p>Interactive chord detection and testing</p>
