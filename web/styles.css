@@ -315,6 +315,7 @@ select {
     border-radius: 8px;
     margin-bottom: 20px;
     border: 1px solid #e9ecef;
+    flex-wrap: wrap;
 }
 
 .midi-indicator {
@@ -349,6 +350,28 @@ select {
 
 .mute-btn:hover {
     background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.midi-device-select {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+.midi-debug {
+    font-size: 12px;
+    color: #666;
+    font-family: monospace;
+    background: #f1f1f1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Footer */
