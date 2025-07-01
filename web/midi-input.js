@@ -75,8 +75,11 @@ class MidiInput {
             return false;
         }
 
-        // Disconnect previous device
-        this.disconnect();
+        // Disconnect previous device if any
+        if (this.isEnabled) {
+            console.log('Disconnecting previous device...');
+            this.disconnect();
+        }
 
         const device = deviceInfo.device;
         
@@ -126,9 +129,11 @@ class MidiInput {
         if (this.midiAccess) {
             for (const input of this.midiAccess.inputs.values()) {
                 input.onmidimessage = null;
+                input.onstatechange = null;
             }
         }
         this.isEnabled = false;
+        this.connectedDeviceId = null;
         this.activeNotes.clear();
         console.log('Disconnected from MIDI devices');
     }

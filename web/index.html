@@ -25,10 +25,12 @@
         <!-- MIDI Status -->
         <div id="midiStatus" class="midi-status">
             <span id="midiIndicator" class="midi-indicator">🎹 MIDI: Disconnected</span>
-            <select id="midiDeviceSelect" class="midi-device-select" style="display: none;">
-                <option value="">Select MIDI Device</option>
-            </select>
-            <button id="midiConnect" class="midi-connect-btn">Connect MIDI</button>
+            <div class="midi-device-row">
+                <select id="midiDeviceSelect" class="midi-device-select" style="display: none;">
+                    <option value="">Select MIDI Device</option>
+                </select>
+                <button id="midiConnect" class="midi-connect-btn">Connect MIDI</button>
+            </div>
             <span id="midiDebug" class="midi-debug" style="display: none;"></span>
         </div>
 
@@ -53,13 +55,7 @@
                         </div>
                     </div>
                     
-                    <!-- MIDI Controls -->
-                    <div class="midi-controls" id="midiControls" style="display: none;">
-                        <h3>MIDI Device</h3>
-                        <select id="midiDeviceSelect">
-                            <option>No MIDI devices available</option>
-                        </select>
-                    </div>
+                    <!-- MIDI Controls removed - using main MIDI status bar -->
                 </div>
                 
                 <!-- Right Panel -->
@@ -111,7 +107,7 @@
         let lastDetectedChord = '';
         let isAudioMuted = false;
         
-        // Initialize Chordlock
+        // Initialize Chordlock (force cache refresh)
         ChordlockModule().then(function(Module) {
             chordlock = Module;
             chordlock.ccall('chordlock_init', null, [], []);
@@ -148,16 +144,32 @@
                 
                 // Set up MIDI event handlers
                 window.midiInput.onNoteOn = (note, velocity) => {
+                    console.log(`MIDI Note ON: ${note} (${window.midiInput.noteToName(note)}) vel=${velocity}`);
+                    
+                    // Send to Chordlock engine
+                    if (chordlock) {
+                        chordlock.ccall('chordlock_note_on', null, ['number', 'number'], [note, velocity]);
+                    }
+                    
+                    // Update UI
                     activeNotes.add(note);
-                    updateChordDetection();
                     highlightPianoKey(note, true);
+                    updateChordDisplay();
                     updateMIDIDebug(`${window.midiInput.noteToName(note)} ON`);
                 };
                 
                 window.midiInput.onNoteOff = (note) => {
+                    console.log(`MIDI Note OFF: ${note} (${window.midiInput.noteToName(note)})`);
+                    
+                    // Send to Chordlock engine
+                    if (chordlock) {
+                        chordlock.ccall('chordlock_note_off', null, ['number'], [note]);
+                    }
+                    
+                    // Update UI
                     activeNotes.delete(note);
-                    updateChordDetection();
                     highlightPianoKey(note, false);
+                    updateChordDisplay();
                     updateMIDIDebug(`${window.midiInput.noteToName(note)} OFF`);
                 };
                 
@@ -168,13 +180,24 @@
                     updateMIDIStatus();
                 };
                 
-                // Setup device dropdown
+                // Setup device dropdown with proper device switching
                 const deviceSelect = document.getElementById('midiDeviceSelect');
                 deviceSelect.addEventListener('change', async (e) => {
                     const deviceId = e.target.value;
                     console.log('Device selection changed:', deviceId);
                     
+                    // Always disconnect first
+                    if (window.midiInput.isEnabled) {
+                        console.log('Disconnecting current device before switching...');
+                        window.midiInput.disconnect();
+                        updateMIDIDebug('Disconnecting current device...');
+                        
+                        // Small delay to ensure clean disconnection
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                    
                     if (deviceId) {
+                        updateMIDIDebug('Connecting to new device...');
                         const success = window.midiInput.connectDevice(deviceId);
                         if (success) {
                             updateMIDIDebug('Connected! Try playing some notes...');
@@ -182,10 +205,11 @@
                             updateMIDIDebug('Connection failed!');
                         }
                     } else {
-                        window.midiInput.disconnect();
-                        updateMIDIDebug('Disconnected');
+                        updateMIDIDebug('No device selected');
                     }
-                    updateMIDIStatus();
+                    
+                    // Update UI after operation
+                    setTimeout(() => updateMIDIStatus(), 200);
                 });
                 
                 // Setup connect button (for permission request)
@@ -280,8 +304,10 @@
                 button.textContent = 'Rescan Devices';
                 button.style.background = '#2196F3';
                 
-                // Update dropdown selection
-                deviceSelect.value = status.connectedDevice;
+                // Update dropdown selection only if it's different
+                if (deviceSelect.value !== status.connectedDevice) {
+                    deviceSelect.value = status.connectedDevice;
+                }
                 
             } else {
                 const deviceCount = window.midiInput.getDevices().length;
@@ -304,106 +330,17 @@
                     button.textContent = 'Enable MIDI';
                     button.style.background = '#FF9800';
                 }
-                deviceSelect.value = '';
+                // Clear dropdown selection only if it's not already empty
+                if (deviceSelect.value !== '') {
+                    deviceSelect.value = '';
+                }
             }
             
             // Always update device list
             populateDeviceDropdown();
         }
         
-        // Legacy MIDI function (keeping for compatibility)
-        async function legacyInitMIDI() {
-            if (navigator.requestMIDIAccess) {
-                try {
-                    midiAccess = await navigator.requestMIDIAccess();
-                    setupMIDIDevices();
-                    midiAccess.onstatechange = setupMIDIDevices;
-                } catch (err) {
-                    console.log('MIDI access failed:', err);
-                }
-            }
-        }
-        
-        function setupMIDIDevices() {
-            const select = document.getElementById('midiDeviceSelect');
-            const midiControls = document.getElementById('midiControls');
-            
-            // Clear existing options
-            select.innerHTML = '<option value="">Select MIDI device...</option>';
-            
-            let hasDevices = false;
-            for (let input of midiAccess.inputs.values()) {
-                hasDevices = true;
-                const option = document.createElement('option');
-                option.value = input.id;
-                option.textContent = input.name;
-                select.appendChild(option);
-            }
-            
-            if (hasDevices) {
-                midiControls.style.display = 'block';
-                select.addEventListener('change', connectMIDIDevice);
-            }
-        }
-        
-        function connectMIDIDevice() {
-            const select = document.getElementById('midiDeviceSelect');
-            const deviceId = select.value;
-            
-            // Disconnect all previous devices
-            for (let input of midiAccess.inputs.values()) {
-                input.onmidimessage = null;
-            }
-            
-            if (deviceId) {
-                const input = midiAccess.inputs.get(deviceId);
-                if (input) {
-                    input.onmidimessage = handleMIDIMessage;
-                }
-            }
-        }
-        
-        function handleMIDIMessage(message) {
-            const [command, note, velocity] = message.data;
-            
-            if (command === 144 && velocity > 0) {
-                // Note on
-                noteOn(note, velocity);
-            } else if (command === 128 || (command === 144 && velocity === 0)) {
-                // Note off
-                noteOff(note);
-            }
-        }
-        
-        function noteOn(midiNote, velocity = 80) {
-            if (!chordlock || activeNotes.has(midiNote)) return;
-            
-            chordlock.ccall('chordlock_note_on', null, ['number', 'number'], [midiNote, velocity]);
-            activeNotes.add(midiNote);
-            
-            // Visual feedback on piano
-            const keyElement = document.getElementById('key-' + midiNote);
-            if (keyElement) {
-                keyElement.classList.add('active');
-            }
-            
-            updateChordDisplay();
-        }
-        
-        function noteOff(midiNote) {
-            if (!chordlock || !activeNotes.has(midiNote)) return;
-            
-            chordlock.ccall('chordlock_note_off', null, ['number'], [midiNote]);
-            activeNotes.delete(midiNote);
-            
-            // Visual feedback on piano
-            const keyElement = document.getElementById('key-' + midiNote);
-            if (keyElement) {
-                keyElement.classList.remove('active');
-            }
-            
-            updateChordDisplay();
-        }
+        // Legacy MIDI functions removed - using new MIDI input system
         
         function generatePiano() {
             const piano = document.getElementById('piano');
@@ -466,11 +403,25 @@
         }
         
         function toggleNote(midiNote) {
+            console.log(`Manual toggle: ${midiNote} (${window.midiInput ? window.midiInput.noteToName(midiNote) : 'Note ' + midiNote})`);
+            
             if (activeNotes.has(midiNote)) {
-                noteOff(midiNote);
+                // Note off
+                if (chordlock) {
+                    chordlock.ccall('chordlock_note_off', null, ['number'], [midiNote]);
+                }
+                activeNotes.delete(midiNote);
+                highlightPianoKey(midiNote, false);
             } else {
-                noteOn(midiNote);
+                // Note on  
+                if (chordlock) {
+                    chordlock.ccall('chordlock_note_on', null, ['number', 'number'], [midiNote, 80]);
+                }
+                activeNotes.add(midiNote);
+                highlightPianoKey(midiNote, true);
             }
+            
+            updateChordDisplay();
         }
         
         // Helper function to highlight piano keys
@@ -485,10 +436,8 @@
             }
         }
         
-        // Update chord detection based on active notes
-        function updateChordDetection() {
-            updateChordDisplay();
-        }
+        // Note: updateChordDetection is now handled directly in MIDI event handlers
+        // This ensures Chordlock engine receives the actual MIDI note_on/note_off calls
         
         function updateChordDisplay() {
             if (!chordlock) return;

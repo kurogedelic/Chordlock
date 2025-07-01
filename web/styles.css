@@ -361,6 +361,12 @@ select {
     min-width: 200px;
 }
 
+.midi-device-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .midi-debug {
     font-size: 12px;
     color: #666;

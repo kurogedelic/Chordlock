@@ -95,13 +95,16 @@ EnhancedHashLookupEngine::lookupChordEnhanced(const VelocityProcessor::VelocityW
     
     uint16_t mask = calculateMask(weights);
     
-    // Direct lookup first
+    // Direct lookup first - these should be highly prioritized
     const EnhancedChordEntry* entry = findEnhancedChord(mask);
     if (entry) {
         float confidence = entry->confidence;
         
         // Apply confidence boost based on velocity analysis
         confidence = calculateConfidenceBoost(entry, weights);
+        
+        // Strong boost for exact matches
+        confidence *= 1.5f;
         
         result.candidates.push_back({
             entry->name,
@@ -219,7 +222,13 @@ std::vector<ChordCandidate> EnhancedHashLookupEngine::findAlternativeChords(uint
         
         // Check if this chord's mask is a subset of the input mask
         if ((entry.mask & mask) == entry.mask && entry.mask != mask) {
-            float confidence = entry.confidence * 0.8f; // Penalize subset matches
+            // Count notes in input vs chord
+            int inputNotes = __builtin_popcount(mask);
+            int chordNotes = __builtin_popcount(entry.mask);
+            int extraNotes = inputNotes - chordNotes;
+            
+            // Heavy penalty for subset matches - they should be less likely than complete matches
+            float confidence = entry.confidence * (0.5f - (extraNotes * 0.1f));
             
             alternatives.push_back({
                 entry.name,
