@@ -25,14 +25,18 @@ cd Chordlock && make build
 ./build/chordlock -c "Cmaj7"               # Convert chord name to MIDI notes
 ```
 
-## 📚 Documentation
+## 📚 Documentation & Demos
 
-**[📖 Full Documentation](https://kurogedelic.github.io/Chordlock/)**
+**[📖 Full Documentation](https://kurogedelic.github.io/Chordlock/docs/)**
 
-- [🚀 Quick Start Guide](https://kurogedelic.github.io/Chordlock/quick-start)
-- [📋 API Reference](https://kurogedelic.github.io/Chordlock/api/)
-- [🎼 Key Context Analysis](https://kurogedelic.github.io/Chordlock/features/key-context)
-- [🎹 Interactive Demo](web_app/index.html)
+- [🚀 Quick Start Guide](https://kurogedelic.github.io/Chordlock/docs/quick-start)
+- [📋 API Reference](https://kurogedelic.github.io/Chordlock/docs/api/)
+- [🎼 Key Context Analysis](https://kurogedelic.github.io/Chordlock/docs/installation)
+
+**🎹 Interactive Web Applications:**
+- [🎵 Audio Chord Detection](https://kurogedelic.github.io/Chordlock/web_app/) - Real-time audio analysis
+- [🎹 Simple Piano](https://kurogedelic.github.io/Chordlock/web_app/simple-piano.html) - Visual chord testing
+- [📚 Chord Dictionary](https://kurogedelic.github.io/Chordlock/web_app/dictionary.html) - Chord ↔ Notes converter
 
 ## 🎯 Core Features
 
