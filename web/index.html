@@ -18,9 +18,16 @@
                 <a href="chord-input.html" class="nav-link">📝 Chord Input</a>
                 <a href="index.html" class="nav-link active">🎹 Piano</a>
                 <a href="https://github.com/kurogedelic/Chordlock" target="_blank" class="nav-link">📦 GitHub</a>
+                <button id="muteButton" class="nav-link mute-btn">🔊</button>
             </div>
         </nav>
         
+        <!-- MIDI Status -->
+        <div id="midiStatus" class="midi-status">
+            <span id="midiIndicator" class="midi-indicator">🎹 MIDI: Disconnected</span>
+            <button id="midiConnect" class="midi-connect-btn">Connect MIDI</button>
+        </div>
+
         <div id="loading" class="loading">
             Loading Chordlock...
         </div>
@@ -92,10 +99,13 @@
     </div>
     
     <script src="chordlock.js"></script>
+    <script src="piano-sound.js"></script>
+    <script src="midi-input.js"></script>
     <script>
         let chordlock = null;
         let activeNotes = new Set();
-        let midiAccess = null;
+        let lastDetectedChord = '';
+        let isAudioMuted = false;
         
         // Initialize Chordlock
         ChordlockModule().then(function(Module) {
@@ -106,14 +116,91 @@
             document.getElementById('main-interface').style.display = 'block';
             
             generatePiano();
+            initAudio();
             initMIDI();
         }).catch(function(err) {
             console.error('Failed to load Chordlock:', err);
             document.getElementById('loading').innerHTML = 'Failed to load engine';
         });
+
+        // Initialize Audio
+        async function initAudio() {
+            // Initialize piano sound engine
+            await window.pianoSound.initialize();
+            
+            // Setup mute button
+            const muteButton = document.getElementById('muteButton');
+            muteButton.addEventListener('click', () => {
+                isAudioMuted = !isAudioMuted;
+                window.pianoSound.setMuted(isAudioMuted);
+                muteButton.textContent = isAudioMuted ? '🔇' : '🔊';
+            });
+        }
         
-        // Initialize Web MIDI API
+        // Initialize MIDI with new class
         async function initMIDI() {
+            try {
+                await window.midiInput.initialize();
+                
+                // Set up MIDI event handlers
+                window.midiInput.onNoteOn = (note, velocity) => {
+                    activeNotes.add(note);
+                    updateChordDetection();
+                    highlightPianoKey(note, true);
+                };
+                
+                window.midiInput.onNoteOff = (note) => {
+                    activeNotes.delete(note);
+                    updateChordDetection();
+                    highlightPianoKey(note, false);
+                };
+                
+                // Update UI
+                updateMIDIStatus();
+                
+                // Setup connect button
+                const connectButton = document.getElementById('midiConnect');
+                connectButton.addEventListener('click', async () => {
+                    if (!window.midiInput.isEnabled) {
+                        const devices = window.midiInput.getDevices();
+                        if (devices.length > 0) {
+                            window.midiInput.connectDevice(devices[0].id);
+                            updateMIDIStatus();
+                        }
+                    } else {
+                        window.midiInput.disconnect();
+                        updateMIDIStatus();
+                    }
+                });
+                
+            } catch (error) {
+                console.error('MIDI initialization failed:', error);
+                document.getElementById('midiIndicator').textContent = '🎹 MIDI: Not Available';
+            }
+        }
+        
+        // Update MIDI status display
+        function updateMIDIStatus() {
+            const indicator = document.getElementById('midiIndicator');
+            const button = document.getElementById('midiConnect');
+            const status = window.midiInput.getStatus();
+            
+            if (status.enabled) {
+                const devices = window.midiInput.getDevices();
+                const connectedDevice = devices.find(d => d.connected);
+                indicator.textContent = `🎹 MIDI: ${connectedDevice ? connectedDevice.name : 'Connected'}`;
+                button.textContent = 'Disconnect';
+                button.style.background = '#ff4444';
+            } else {
+                const deviceCount = window.midiInput.getDevices().length;
+                indicator.textContent = `🎹 MIDI: ${deviceCount > 0 ? 'Ready' : 'No Devices'}`;
+                button.textContent = 'Connect MIDI';
+                button.style.background = '#4CAF50';
+            }
+        }
+        
+        // Legacy MIDI function (keeping for compatibility)
+        async function legacyInitMIDI() {
             if (navigator.requestMIDIAccess) {
                 try {
                     midiAccess = await navigator.requestMIDIAccess();

@@ -159,6 +159,22 @@
         .similar-chords {
             margin-top: 15px;
         }
+
+        .play-chord-btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .play-chord-btn:hover {
+            background: #45a049;
+        }
         
         .similar-title {
             font-size: 0.8rem;
@@ -259,6 +275,7 @@
                 <a href="chord-input.html" class="nav-link active">📝 Chord Input</a>
                 <a href="index.html" class="nav-link">🎹 Piano</a>
                 <a href="https://github.com/kurogedelic/Chordlock" target="_blank" class="nav-link">📦 GitHub</a>
+                <button id="muteButton" class="nav-link mute-btn">🔊</button>
             </div>
         </nav>
         
@@ -320,6 +337,7 @@
                     <div class="chord-display">
                         <div class="chord-name" id="chordName">—</div>
                         <div class="chord-info" id="chordInfo">Enter a chord name to see its notes</div>
+                        <button id="playChordButton" class="play-chord-btn" onclick="playCurrentChord()" style="display: none;">🔊 Play Chord</button>
                     </div>
                     
                     <!-- Notes Display -->
@@ -362,6 +380,7 @@
     </div>
     
     <script src="chordlock.js"></script>
+    <script src="piano-sound.js"></script>
     <script>
         let chordlock = null;
         let currentNotes = [];
@@ -376,6 +395,7 @@
             
             generatePiano();
             updateEngineInfo();
+            initAudio();
             
             // Add enter key support
             document.getElementById('chordInput').addEventListener('keypress', function(e) {
@@ -454,6 +474,28 @@
             // Make piano wider to accommodate more keys
             piano.style.width = '700px';
         }
+
+        // Initialize Audio
+        async function initAudio() {
+            await window.pianoSound.initialize();
+            
+            // Setup mute button
+            const muteButton = document.getElementById('muteButton');
+            let isAudioMuted = false;
+            
+            muteButton.addEventListener('click', () => {
+                isAudioMuted = !isAudioMuted;
+                window.pianoSound.setMuted(isAudioMuted);
+                muteButton.textContent = isAudioMuted ? '🔇' : '🔊';
+            });
+        }
+
+        // Play current chord notes
+        function playCurrentChord() {
+            if (currentNotes.length > 0) {
+                window.pianoSound.playChord(currentNotes, 80);
+            }
+        }
         
         function convertChord() {
             const chordInput = document.getElementById('chordInput').value.trim();
@@ -523,8 +565,9 @@
             document.getElementById('chordName').textContent = chordName;
             document.getElementById('chordInfo').textContent = `Root octave: ${octave} • ${notes.length} notes`;
             
-            // Show notes display
+            // Show notes display and play button
             document.getElementById('notesDisplay').style.display = 'block';
+            document.getElementById('playChordButton').style.display = 'inline-block';
             
             // Update MIDI notes
             document.getElementById('midiNotes').textContent = '[' + notes.join(', ') + ']';
@@ -626,6 +669,7 @@
             document.getElementById('chordName').textContent = '—';
             document.getElementById('chordInfo').textContent = 'Enter a chord name to see its notes';
             document.getElementById('notesDisplay').style.display = 'none';
+            document.getElementById('playChordButton').style.display = 'none';
             document.getElementById('alternativesSection').style.display = 'none';
             currentNotes = [];
             clearPianoHighlights();

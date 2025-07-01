@@ -304,6 +304,53 @@ select {
     color: #fff;
 }
 
+/* MIDI Status */
+.midi-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.midi-indicator {
+    font-weight: 500;
+    color: #495057;
+}
+
+.midi-connect-btn {
+    padding: 8px 16px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.midi-connect-btn:hover {
+    background: #45a049;
+}
+
+.mute-btn {
+    background: none !important;
+    border: none !important;
+    font-size: 18px !important;
+    cursor: pointer;
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    transition: background-color 0.3s;
+}
+
+.mute-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
 /* Footer */
 .footer {
     margin-top: 40px;
