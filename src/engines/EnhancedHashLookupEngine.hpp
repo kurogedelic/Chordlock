@@ -27,6 +27,14 @@ public:
         std::vector<int> extraNotes;    // Present notes not expected
         std::string interpretationType; // "exact", "subset", "superset", "inversion", "transposition"
         float matchScore;         // Percentage of note matching
+        ChordExtensions extensions; // Add/altered/sus tones
+        
+        std::string getDisplayName() const {
+            if (extensions.hasExtensions()) {
+                return name + extensions.formatExtensions();
+            }
+            return name;
+        }
     };
 
     struct EnhancedLookupResult {
@@ -45,6 +53,7 @@ private:
     bool velocitySensitive_ = true;
     bool slashChordDetection_ = true;
     int currentKey_ = 0;
+    KeyContext keyContext_; // Key-aware analysis
     
 public:
     EnhancedHashLookupEngine();
@@ -62,6 +71,12 @@ public:
     void setVelocitySensitivity(bool enabled) override;
     void setSlashChordDetection(bool enabled) override;
     void setKey(int key) override;
+    
+    // Key context methods
+    void setKeyContext(const KeyContext& key);
+    void setKeyContext(int tonic, bool isMinor = false);
+    void clearKeyContext();
+    const KeyContext& getKeyContext() const;
     
     bool getVelocitySensitivity() const override;
     bool getSlashChordDetection() const override;
@@ -98,8 +113,34 @@ private:
     
     // Enhanced bass-aware analysis
     int findLowestNote() const;
+    int findNextLowestNote() const;
     int findHighestNote() const;
     std::string formatNoteName(int midiNote) const;
     uint16_t removeLowestNoteFromMask(uint16_t mask, int lowestNote) const;
     DetailedChordCandidate createSlashChordCandidate(const EnhancedChordEntry* upperChord, int bassNote, float baseConfidence) const;
+    std::string analyzeNaturalSlashChord(uint16_t mask, int bassPitch, bool& isNaturalSlashChord) const;
+    
+    // 6th chord detection
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> detect6thChords(uint16_t mask) const;
+    
+    // sus2/sus4 chord detection
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> detectSusChords(uint16_t mask) const;
+    
+    // augmented chord detection
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> detectAugmentedChords(uint16_t mask) const;
+    
+    // diminished 7th chord detection
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> detectDiminishedSeventhChords(uint16_t mask) const;
+    
+    // chord extension analysis
+    ChordExtensions analyzeChordExtensions(uint16_t mask, const std::string& baseChordName) const;
+    
+    // altered 7th chord detection
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> detectAlteredSeventhChords(uint16_t mask) const;
+    
+    // key-aware analysis
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> detectExtendedChords(uint16_t mask) const;
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> analyzeRootlessChords(uint16_t mask) const;
+    std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> analyzePolychords(uint16_t mask) const;
+    float calculateKeyBoost(const std::string& chordName, uint16_t mask) const;
 };

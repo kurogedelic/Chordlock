@@ -136,6 +136,33 @@ void signalHandler(int signum) {
     running = false;
 }
 
+// Parse key name and return tonic pitch and minor flag
+std::pair<int, bool> parseKeyName(const std::string& keyName) {
+    if (keyName.empty()) return {-1, false};
+    
+    // Note names mapping
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    const char* altNames[] = {"C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"};
+    
+    std::string key = keyName;
+    bool isMinor = false;
+    
+    // Check for minor key indicator
+    if (key.length() > 1 && key.back() == 'm') {
+        isMinor = true;
+        key.pop_back();
+    }
+    
+    // Find tonic pitch
+    for (int i = 0; i < 12; i++) {
+        if (key == noteNames[i] || key == altNames[i]) {
+            return {i, isMinor};
+        }
+    }
+    
+    return {-1, false}; // Invalid key
+}
+
 // Parse note numbers from string (e.g., "[60,64,67]" or "60,64,67")
 std::vector<int> parseNoteNumbers(const std::string& input) {
     std::vector<int> notes;
@@ -179,8 +206,8 @@ void processNotes(const std::vector<int>& notes) {
         chordlock.noteOn(note, 100);  // Default velocity
     }
     
-    // Detect chord
-    auto result = chordlock.detectChordWithAlternatives(5);
+    // Detect chord with detailed analysis (includes bass separation)
+    auto result = chordlock.detectChordWithDetailedAnalysis(5);
     
     std::cout << "Notes: ";
     for (size_t i = 0; i < notes.size(); ++i) {
@@ -218,6 +245,7 @@ int main(int argc, char* argv[]) {
     std::string noteInput = "";
     std::string filename = "";
     std::string chordName = "";
+    std::string keyInput = "";
     bool midiMode = true;
     
     for (int i = 1; i < argc; ++i) {
@@ -235,6 +263,8 @@ int main(int argc, char* argv[]) {
         } else if ((arg == "--chord" || arg == "-c") && i + 1 < argc) {
             chordName = argv[++i];
             midiMode = false;
+        } else if ((arg == "--key" || arg == "-k") && i + 1 < argc) {
+            keyInput = argv[++i];
         } else if (arg == "--help" || arg == "-h") {
             std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
             std::cout << "Options:" << std::endl;
@@ -243,6 +273,7 @@ int main(int argc, char* argv[]) {
             std::cout << "  -N, --notes <notes>     Analyze specific notes (e.g., \"60,64,67\" or \"[60,64,67]\")" << std::endl;
             std::cout << "  -f, --file <filename>   Read notes from file (one set per line)" << std::endl;
             std::cout << "  -c, --chord <name>      Convert chord name to MIDI notes (e.g., \"Cmaj7\", \"F#m\")" << std::endl;
+            std::cout << "  -k, --key <key>         Set key context for rootless/polychord analysis (e.g., \"C\", \"Bb\", \"Fm\")" << std::endl;
             std::cout << "  -h, --help              Show this help message" << std::endl;
             std::cout << "\nExamples:" << std::endl;
             std::cout << "  " << argv[0] << " -N 60,64,67           # Analyze C major chord" << std::endl;
@@ -250,6 +281,7 @@ int main(int argc, char* argv[]) {
             std::cout << "  " << argv[0] << " -c \"Gmaj7\"           # Convert Gmaj7 to MIDI notes" << std::endl;
             std::cout << "  " << argv[0] << " -c \"CM7\"             # Convert CM7 to MIDI notes (with fallback)" << std::endl;
             std::cout << "  " << argv[0] << " -f chords.txt         # Read from file" << std::endl;
+            std::cout << "  " << argv[0] << " -N 67,71,74,79 -k C   # Analyze with C major key context" << std::endl;
             return 0;
         }
     }
@@ -258,9 +290,26 @@ int main(int argc, char* argv[]) {
     chordlock.setSlashChordDetection(slashChords);
     chordlock.setVelocitySensitivity(velocitySensitive);
     
+    // Configure key context if provided
+    std::pair<int, bool> keyInfo = {-1, false};
+    if (!keyInput.empty()) {
+        keyInfo = parseKeyName(keyInput);
+        if (keyInfo.first >= 0) {
+            chordlock.setKeyContext(keyInfo.first, keyInfo.second);
+        } else {
+            std::cerr << "Warning: Invalid key name '" << keyInput << "', ignoring key context" << std::endl;
+        }
+    }
+    
     std::cout << "Configuration:" << std::endl;
     std::cout << "  Slash chords: " << (slashChords ? "enabled" : "disabled") << std::endl;
     std::cout << "  Velocity sensitivity: " << (velocitySensitive ? "enabled" : "disabled") << std::endl;
+    if (keyInfo.first >= 0) {
+        const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        std::cout << "  Key context: " << noteNames[keyInfo.first] << (keyInfo.second ? " minor" : " major") << std::endl;
+    } else {
+        std::cout << "  Key context: none" << std::endl;
+    }
     std::cout << std::endl;
     
     // Process based on mode

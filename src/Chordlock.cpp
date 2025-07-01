@@ -203,6 +203,10 @@ void Chordlock::setConfidenceThreshold(float threshold) {
     config_.confidenceThreshold = std::max(0.0f, std::min(1.0f, threshold));
 }
 
+void Chordlock::setKeyContext(int tonic, bool isMinor) {
+    engine_->setKeyContext(tonic, isMinor);
+}
+
 Chordlock::EngineStatistics Chordlock::getStatistics() const {
     return stats_;
 }

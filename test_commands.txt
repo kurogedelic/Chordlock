@@ -1,0 +1,18 @@
+# ────────── 1・2 ルートレス Cmaj(add9) の判定差 ──────────
+./build/chordlock_test -N 52,60,64,67,74   -k C     # 期待: Cmaj9/E
+./build/chordlock_test -N 52,60,64,67,74   -k Em    # 期待: Em7(add11)
+
+# ────────── 3・4 F/G (上部三和音) の slash / polychord 差 ──────────
+./build/chordlock_test -N 55,60,65,69      -k C     # 期待: F/G   (IV/I)
+./build/chordlock_test -N 55,60,65,69      -k Gb    # 期待: A♭maj7/F♯ など “外音ポリ”
+
+# ────────── 5 Altered G7♯5♭9 in Cm ──────────
+./build/chordlock_test -N 55,59,63,65,68   -k Cm    # 期待: G7alt (♯5♭9)
+
+# ────────── 6 ルート A + 上部 E♭dim7 のキー依存 ──────────
+./build/chordlock_test -N 57,63,66,69,72   -k C     # 期待: Adim7  (leading-tone)
+./build/chordlock_test -N 57,63,66,69,72   -k Am    # 期待: E♭°/A  (ポリ扱い)
+
+# ────────── 7・8 D/E クラスタ：キーで主従が逆転 ──────────
+./build/chordlock_test -N 50,54,57,64,68,71 -k D    # 期待: D/E (V/II  的)
+./build/chordlock_test -N 50,54,57,64,68,71 -k E    # 期待: E11   (サブドミナント)

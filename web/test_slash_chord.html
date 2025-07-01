@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Slash Chord Test</title>
+</head>
+<body>
+    <h1>Slash Chord Test - E3, C4, E4, G4</h1>
+    <p>Testing E bass with C major triad (should be C/E)...</p>
+    <div id="result"></div>
+    
+    <script src="chordlock.js"></script>
+    <script>
+        ChordlockModule().then(function(Module) {
+            console.log('Testing slash chord detection');
+            
+            // Initialize
+            Module.ccall('chordlock_init', null, [], []);
+            
+            // Add notes E3, C4, E4, G4 (52, 60, 64, 67)
+            Module.ccall('chordlock_note_on', null, ['number', 'number'], [52, 80]); // E3
+            Module.ccall('chordlock_note_on', null, ['number', 'number'], [60, 80]); // C4
+            Module.ccall('chordlock_note_on', null, ['number', 'number'], [64, 80]); // E4
+            Module.ccall('chordlock_note_on', null, ['number', 'number'], [67, 80]); // G4
+            
+            // Detect chord
+            const result = Module.ccall('chordlock_detect_chord_detailed', 'string', ['number'], [5]);
+            console.log('Slash chord test result:', result);
+            
+            const parsed = JSON.parse(result);
+            const topChord = parsed.chord;
+            const topConfidence = parsed.confidence;
+            
+            let status = 'TESTING';
+            let statusColor = 'blue';
+            let expectation = 'Should detect C/E (C major with E bass)';
+            
+            if (topChord === 'C/E') {
+                status = 'PERFECT ✅';
+                statusColor = 'green';
+            } else if (topChord.includes('/E') || topChord.includes('C')) {
+                status = 'PARTIAL - shows some recognition';
+                statusColor = 'orange';
+            } else {
+                status = 'UNEXPECTED';
+                statusColor = 'red';
+            }
+            
+            document.getElementById('result').innerHTML = `
+                <h2 style="color: ${statusColor}">${status}</h2>
+                <p><strong>Input:</strong> E3(52), C4(60), E4(64), G4(67)</p>
+                <p><strong>Expected:</strong> C/E (C major with E bass)</p>
+                <p><strong>Detected:</strong> ${topChord}</p>
+                <p><strong>Confidence:</strong> ${topConfidence.toFixed(4)}</p>
+                
+                <h3>All Candidates:</h3>
+                <ol>
+                ${parsed.detailedCandidates.map(c => 
+                    `<li><strong>${c.name}</strong> - ${(c.confidence * 100).toFixed(1)}% (${c.interpretationType})</li>`
+                ).join('')}
+                </ol>
+                
+                <details>
+                    <summary>Full JSON Result</summary>
+                    <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                </details>
+            `;
+            
+            // Clean up
+            Module.ccall('chordlock_cleanup', null, [], []);
+        }).catch(function(err) {
+            console.error('Failed to load Chordlock:', err);
+            document.getElementById('result').innerHTML = `<span style="color: red;">Error: ${err}</span>`;
+        });
+    </script>
+</body>
+</html>

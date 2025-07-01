@@ -108,6 +108,7 @@ public:
     void setSlashChordDetection(bool enabled);
     void setKeySignature(int keySignature);
     void setConfidenceThreshold(float threshold);
+    void setKeyContext(int tonic, bool isMinor = false);
     
     // Information and statistics
     EngineStatistics getStatistics() const;
