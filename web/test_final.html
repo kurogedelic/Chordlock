@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WASM Final Test</title>
+</head>
+<body>
+    <h1>Final WebAssembly Test</h1>
+    <p>Testing with latest rebuilt WASM (2GB heap)...</p>
+    <div id="result"></div>
+    
+    <script>
+        // Force fresh load by bypassing any caches
+        delete window.ChordlockModule;
+        
+        // Create script element dynamically to avoid cache
+        const timestamp = Date.now();
+        const script = document.createElement('script');
+        script.src = `chordlock.js?v=${timestamp}`;
+        script.onload = function() {
+            console.log('ChordlockModule loaded with timestamp:', timestamp);
+            runTest();
+        };
+        script.onerror = function() {
+            document.getElementById('result').innerHTML = 'Error loading Chordlock script';
+        };
+        document.head.appendChild(script);
+        
+        function runTest() {
+            ChordlockModule().then(function(Module) {
+                console.log('Fresh Chordlock initialized');
+                
+                // Initialize
+                Module.ccall('chordlock_init', null, [], []);
+                
+                // Add notes C-E-G-B (60,64,67,71)
+                Module.ccall('chordlock_note_on', null, ['number', 'number'], [60, 80]);
+                Module.ccall('chordlock_note_on', null, ['number', 'number'], [64, 80]);
+                Module.ccall('chordlock_note_on', null, ['number', 'number'], [67, 80]);
+                Module.ccall('chordlock_note_on', null, ['number', 'number'], [71, 80]);
+                
+                // Detect chord
+                const result = Module.ccall('chordlock_detect_chord_detailed', 'string', ['number'], [5]);
+                console.log('Final detection result:', result);
+                
+                const parsed = JSON.parse(result);
+                const topChord = parsed.chord;
+                const topConfidence = parsed.confidence;
+                const cmaj7Candidate = parsed.detailedCandidates.find(c => c.name === 'Cmaj7');
+                
+                let status = 'FAIL';
+                let statusColor = 'red';
+                
+                if (topChord === 'Cmaj7' && topConfidence > 0.65) {
+                    status = 'SUCCESS ✅';
+                    statusColor = 'green';
+                } else if (cmaj7Candidate && cmaj7Candidate.confidence > 0.65) {
+                    status = 'PARTIAL SUCCESS - Cmaj7 detected with high confidence';
+                    statusColor = 'orange';
+                }
+                
+                document.getElementById('result').innerHTML = `
+                    <h2 style="color: ${statusColor}">${status}</h2>
+                    <p><strong>Top Chord:</strong> ${topChord}</p>
+                    <p><strong>Top Confidence:</strong> ${topConfidence.toFixed(4)}</p>
+                    ${cmaj7Candidate ? `<p><strong>Cmaj7 Confidence:</strong> ${cmaj7Candidate.confidence.toFixed(4)}</p>` : ''}
+                    <p><strong>Expected:</strong> Cmaj7 as top chord with confidence > 0.65</p>
+                    <details>
+                        <summary>Full JSON Result</summary>
+                        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                    </details>
+                `;
+                
+                // Clean up
+                Module.ccall('chordlock_cleanup', null, [], []);
+            }).catch(function(err) {
+                console.error('Failed to load Chordlock:', err);
+                document.getElementById('result').innerHTML = `<span style="color: red;">Error: ${err}</span>`;
+            });
+        }
+    </script>
+</body>
+</html>

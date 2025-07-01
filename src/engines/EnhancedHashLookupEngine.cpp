@@ -329,14 +329,17 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
         candidate.interpretationType = "exact";
         candidate.matchScore = 1.0f;
         
-        // Boost confidence for theoretical chords (sus2, sus4, add9, etc.)
+        // Apply strong boost for exact matches (should be highest priority)
+        candidate.confidence *= 1.5f; // Strong boost for exact matches
+        
+        // Additional boost for theoretical chords (sus2, sus4, add9, etc.)
         std::string chordName = exactEntry->name;
         if (chordName.find("sus2") != std::string::npos ||
             chordName.find("sus4") != std::string::npos ||
             chordName.find("add") != std::string::npos ||
             chordName.find("dim") != std::string::npos ||
             chordName.find("aug") != std::string::npos) {
-            candidate.confidence *= 1.3f; // Prioritize theoretical chords
+            candidate.confidence *= 1.3f; // Additional boost for theoretical chords
         }
         
         detailedCandidates.push_back(candidate);
@@ -368,7 +371,7 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
                         
                         // Reduce slash chord confidence when exact match exists
                         if (exactEntry) {
-                            slashCandidate.confidence *= 0.8f; // Demote slash chords when exact match available
+                            slashCandidate.confidence *= 0.6f; // Strong demotion for slash chords when exact match available
                         }
                         
                         // Boost confidence for slash chords when bass is in much lower register

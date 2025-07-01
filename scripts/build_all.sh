@@ -214,8 +214,8 @@ if [ "$EMSCRIPTEN_AVAILABLE" = true ]; then
         ]' \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s INITIAL_MEMORY=16MB \
-        -s MAXIMUM_MEMORY=32MB \
-        -s STACK_SIZE=1MB \
+        -s MAXIMUM_MEMORY=2GB \
+        -s STACK_SIZE=5MB \
         -s MODULARIZE=1 \
         -s EXPORT_NAME='ChordlockModule' \
         --bind

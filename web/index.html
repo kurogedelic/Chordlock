@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chordlock</title>
+    <title>Chordlock - v1751336417</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -98,7 +98,7 @@
         </div>
     </div>
     
-    <script src="chordlock.js"></script>
+    <script src="chordlock.js?v=1751336417"></script>
     <script src="piano-sound.js"></script>
     <script src="midi-input.js"></script>
     <script>
@@ -108,6 +108,15 @@
         let isAudioMuted = false;
         
         // Initialize Chordlock (force cache refresh)
+        // Clear any cached module first
+        if (window.ChordlockModule) {
+            delete window.ChordlockModule;
+        }
+        
+        // Force reload with timestamp
+        const timestamp = Date.now();
+        console.log('Loading Chordlock with cache buster:', timestamp);
+        
         ChordlockModule().then(function(Module) {
             chordlock = Module;
             chordlock.ccall('chordlock_init', null, [], []);
