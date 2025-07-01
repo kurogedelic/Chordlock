@@ -1,161 +1,69 @@
-# 🎵 Chordlock v2.0 - Advanced Key-Context Chord Detection
+# 🎵 Chordlock v2.0
 
-**Revolutionary MIDI chord detection engine with functional harmony analysis**
+> **Revolutionary MIDI chord detection engine with key-context awareness**
 
-Chordlock is an intelligent MIDI chord detection library that provides **key-context aware** chord analysis with support for complex harmonies, slash chords, and functional harmony theory. Unlike traditional chord detection systems, Chordlock considers the musical key to provide contextually appropriate chord interpretations.
+Chordlock provides intelligent chord detection that considers musical key context for accurate harmonic analysis. Unlike traditional systems, it understands that the same notes can represent different chords depending on the musical context.
 
-## 🎯 Key Features
+## ✨ Key Innovation
 
-### 🔥 **World-First Key-Context Analysis**
-- **Functional Harmony Priority**: Tonic/Dominant/Subdominant functions get priority boosts
-- **Key-Dependent Interpretation**: Same notes = different chords based on musical key
-- **Example**: `E-C-E-G-D` → `C(add9)` in C major, `Em7(add♭6)` in E minor
-
-### 🎼 **Advanced Chord Detection**
-- **Complex Chords**: 7th, 9th, 11th, 13th extensions
-- **Slash Chords**: Intelligent bass note analysis (`C/E`, `F/G`)
-- **Altered Chords**: `G7#5b9`, `Dm7b5`, `C7alt`
-- **Polychords**: Advanced harmonic structures
-
-### 🎹 **Multiple Interfaces**
-- **CLI**: Command-line batch processing and testing
-- **WebAssembly**: Browser integration for web applications
-- **Web App**: Interactive piano interface with real-time analysis
-
-### ⚡ **High Performance**
-- **Sub-millisecond detection**: Optimized C++ engine
-- **Real-time processing**: Perfect for live performance
-- **Bitmasking optimization**: Efficient pattern matching
+```bash
+# Same notes, different interpretations based on key
+./build/chordlock -N 52,60,64,67,74 -k C   # → C/E [I] in C major
+./build/chordlock -N 52,60,64,67,74 -k Em  # → Em7(add♭6) [i7] in E minor
+```
 
 ## 🚀 Quick Start
 
-### CLI Usage
 ```bash
-# Build the CLI version
-./scripts/build_cli.sh
+# Install
+git clone https://github.com/kurogedelic/Chordlock.git
+cd Chordlock && make build
 
-# Detect chord with key context
-./build/chordlock -N 60,64,67 -k 0    # C major triad in C major
-./build/chordlock -N 60,64,67 -k 16   # C major triad in E minor
-
-# Batch process MIDI file
-./build/chordlock -f input.mid -k 0
+# Use CLI
+./build/chordlock -N 60,64,67 -k C         # Detect chord with key context
+./build/chordlock -d "V7" -k C             # Generate V7 chord in C major
+./build/chordlock -c "Cmaj7"               # Convert chord name to MIDI notes
 ```
 
-### Web Integration
-```html
-<script src="chordlock.js"></script>
-<script>
-ChordlockModule().then(function(Module) {
-    Module.ccall('chordlock_init', null, [], []);
-    Module.ccall('chordlock_set_key', null, ['number'], [0]); // C major
-    
-    // Detect chord
-    Module.ccall('chordlock_note_on', null, ['number', 'number'], [60, 80]); // C
-    Module.ccall('chordlock_note_on', null, ['number', 'number'], [64, 80]); // E
-    Module.ccall('chordlock_note_on', null, ['number', 'number'], [67, 80]); // G
-    
-    const result = Module.ccall('chordlock_detect_chord_detailed', 'string', ['number'], [5]);
-    console.log(JSON.parse(result));
-});
-</script>
+## 📚 Documentation
+
+**[📖 Full Documentation](https://kurogedelic.github.io/Chordlock/)**
+
+- [🚀 Quick Start Guide](https://kurogedelic.github.io/Chordlock/quick-start)
+- [📋 API Reference](https://kurogedelic.github.io/Chordlock/api/)
+- [🎼 Key Context Analysis](https://kurogedelic.github.io/Chordlock/features/key-context)
+- [🎹 Interactive Demo](web_app/index.html)
+
+## 🎯 Core Features
+
+- **🔥 Key-Context Aware**: World-first chord detection considering musical key
+- **🎼 Roman Numeral Analysis**: Automatic functional harmony analysis  
+- **⚡ High Performance**: Sub-millisecond detection with C++ optimization
+- **🔧 Multiple Interfaces**: CLI, C++, WebAssembly, MCP integration
+- **🎵 Advanced Chords**: 339+ chord types including jazz harmony
+
+## 🏗️ Architecture
+
+```
+src/          # Core C++ engine
+build/        # CLI application  
+web_app/      # Interactive demos
+chordlock-mcp/ # AI integration
+docs/         # Documentation site
 ```
 
-### 🤖 AI Integration (MCP)
+## 🤖 AI Integration
 
-Chordlock now supports **Model Context Protocol** for music analysis:
+Works with Claude via Model Context Protocol:
 
 ```bash
-# Install MCP package
 npm install -g @kurogedelic/chordlock-mcp
-
-# Configure Claude Desktop/Code
-{
-  "mcpServers": {
-    "chordlock": {
-      "command": "npx",
-      "args": ["@kurogedelic/chordlock-mcp"]
-    }
-  }
-}
 ```
 
-**AI Use Cases:**
-- *"What MIDI notes make up a Dm7b5 chord?"*
-- *"Generate a jazz ii-V-I progression in Bb major"*
-- *"Analyze this chord progression: C - Am - F - G"*
+Ask Claude: *"Generate a jazz ii-V-I progression in Bb major"*
 
-## API Reference
+## 📄 License
 
-### C++ Core
-```cpp
-#include "Chordlock.hpp"
+MIT License - see [LICENSE](LICENSE) for details.
 
-Chordlock detector;
-
-// Chord detection
-detector.noteOn(60, 80);  // C
-detector.noteOn(64, 80);  // E
-detector.noteOn(67, 80);  // G
-auto result = detector.detectChord();
-// result.chordName = "C"
-
-// Chord generation
-auto notes = detector.chordNameToNotes("Cmaj7", 4);
-// notes = [48, 52, 55, 59]
-```
-
-### WebAssembly
-```javascript
-// Initialize
-chordlock_init();
-
-// Detect chord
-chordlock_note_on(60, 80);
-chordlock_note_on(64, 80);
-chordlock_note_on(67, 80);
-const chord = chordlock_detect_chord(); // "C"
-
-// Generate notes
-const json = chordlock_chord_name_to_notes_json("Cmaj7", 4);
-const data = JSON.parse(json);
-// data.notes = [48, 52, 55, 59]
-```
-
-## Supported Chords
-
-**339+ chord types** including:
-- **Basic**: Major, Minor, Diminished, Augmented
-- **Extended**: 7th, 9th, 11th, 13th
-- **Jazz**: Altered dominants, half-diminished, sus chords
-- **Advanced**: Add chords, slash chords, polytonal harmony
-
-## Architecture
-
-```
-Core Engine (C++17)     →  WebAssembly Build  →  Web Applications
-     ↓                           ↓                      ↓
-CLI Application         →  MCP Server        →  AI Integration
-```
-
-**Performance**: Native ~0.001ms, WebAssembly ~0.002ms per detection
-
-## Requirements
-
-- **C++17** compiler (GCC 8+, Clang 7+, MSVC 2019+)
-- **Emscripten** for WebAssembly builds
-- **Node.js 16+** for MCP integration
-
----
-
-*Built for musicians, developers, and enthusiasts who demand accurate and fast music analysis.*
-
-## License
-
-MIT License
-
-## Author
-
-**Leo Kuroshita** ([@kurogedelic](https://github.com/kurogedelic))
-
-© 2024-2025 Leo Kuroshita. All rights reserved.
+**© 2024-2025 Leo Kuroshita ([@kurogedelic](https://github.com/kurogedelic))**

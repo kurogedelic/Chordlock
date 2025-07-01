@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chordlock Dictionary v2.0.0</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #fff;
+            --accent-color: #4CAF50;
+            --secondary-bg: #2a2a2a;
+            --border-color: #555;
+            --card-bg: #2d2d2d;
+        }
+        
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #ffffff;
+                --text-color: #333;
+                --accent-color: #2196F3;
+                --secondary-bg: #f5f5f5;
+                --border-color: #ddd;
+                --card-bg: #fafafa;
+            }
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            line-height: 1.6;
+        }
+        
+        .navbar {
+            background: var(--secondary-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav-brand h1 {
+            margin: 0;
+            color: var(--accent-color);
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        
+        .nav-brand .version {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-left: 8px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .nav-link:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .nav-link.active {
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .header h2 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: var(--accent-color);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--secondary-bg);
+            color: var(--text-color);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+        }
+        
+        .btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .result-area {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            min-height: 120px;
+        }
+        
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+        
+        .result-content {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.75rem;
+            white-space: pre-wrap;
+        }
+        
+        .degree-display {
+            font-size: 0.9em;
+            color: var(--accent-color);
+            margin-top: 8px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .quick-examples {
+            grid-column: 1 / -1;
+        }
+        
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .example-btn {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .example-btn:hover {
+            border-color: var(--accent-color);
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--accent-color);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>📚 Chordlock Dictionary <span class="version">v2.0.0</span></h1>
+            </div>
+            <div class="nav-links">
+                <a href="simple-piano.html" class="nav-link">🎹 Piano</a>
+                <a href="dictionary.html" class="nav-link active">📚 Dictionary</a>
+                <a href="index.html" class="nav-link">🎵 Audio</a>
+                <a href="https://github.com/kurogedelic/Chordlock" target="_blank" class="nav-link">📦 GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading Chordlock Engine...</p>
+    </div>
+
+    <div id="main-interface" style="display: none;">
+        <div class="container">
+            <div class="header">
+                <h2>Chord Dictionary</h2>
+                <p>Convert between chord names, MIDI notes, and Roman numerals</p>
+            </div>
+
+            <!-- Key Selection -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <div class="form-group">
+                    <label for="keySelect">🎼 Key Context (for Roman numeral analysis):</label>
+                    <select id="keySelect" class="form-control">
+                        <option value="-1">(deny)</option>
+                        <option value="0">C major</option>
+                        <option value="1">C# major</option>
+                        <option value="2">D major</option>
+                        <option value="3">D# major</option>
+                        <option value="4">E major</option>
+                        <option value="5">F major</option>
+                        <option value="6">F# major</option>
+                        <option value="7">G major</option>
+                        <option value="8">G# major</option>
+                        <option value="9">A major</option>
+                        <option value="10">A# major</option>
+                        <option value="11">B major</option>
+                        <option value="12">C minor</option>
+                        <option value="13">C# minor</option>
+                        <option value="14">D minor</option>
+                        <option value="15">D# minor</option>
+                        <option value="16">E minor</option>
+                        <option value="17">F minor</option>
+                        <option value="18">F# minor</option>
+                        <option value="19">G minor</option>
+                        <option value="20">G# minor</option>
+                        <option value="21">A minor</option>
+                        <option value="22">A# minor</option>
+                        <option value="23">B minor</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <!-- Chord Name to Notes -->
+                <div class="card">
+                    <h3>🎵 Chord → Notes</h3>
+                    <div class="form-group">
+                        <label for="chordInput">Chord Name:</label>
+                        <input type="text" id="chordInput" class="form-control" placeholder="e.g., Cmaj7, F#m, G7#5">
+                    </div>
+                    <button onclick="convertChordToNotes()" class="btn">Convert</button>
+                    <div class="result-area">
+                        <div class="result-title">MIDI Notes:</div>
+                        <div id="chordResult" class="result-content">Enter a chord name above</div>
+                        <div id="chordDegree" class="degree-display" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- Roman Numeral to Notes -->
+                <div class="card">
+                    <h3>🏛️ Roman Numeral → Notes</h3>
+                    <div class="form-group">
+                        <label for="degreeInput">Roman Numeral:</label>
+                        <input type="text" id="degreeInput" class="form-control" placeholder="e.g., I, ii7, V9, bVII">
+                    </div>
+                    <button onclick="convertDegreeToNotes()" class="btn">Convert</button>
+                    <div class="result-area">
+                        <div class="result-title">MIDI Notes:</div>
+                        <div id="degreeResult" class="result-content">Enter a Roman numeral above</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Examples -->
+            <div class="card quick-examples">
+                <h3>⚡ Quick Examples</h3>
+                <div class="examples-grid">
+                    <!-- Basic chords -->
+                    <button class="example-btn" onclick="setExample('chord', 'Cmaj7')">Cmaj7</button>
+                    <button class="example-btn" onclick="setExample('chord', 'F#m7b5')">F#m7b5</button>
+                    <button class="example-btn" onclick="setExample('chord', 'G7alt')">G7alt</button>
+                    
+                    <!-- Advanced chords -->
+                    <button class="example-btn" onclick="setExample('chord', 'Dm7b5/Ab')">Dm7b5/Ab</button>
+                    <button class="example-btn" onclick="setExample('chord', 'C#maj7#11')">C#maj7#11</button>
+                    <button class="example-btn" onclick="setExample('chord', 'Bb13sus4')">Bb13sus4</button>
+                    
+                    <!-- Roman numerals -->
+                    <button class="example-btn" onclick="setExample('degree', 'ii7')">ii7</button>
+                    <button class="example-btn" onclick="setExample('degree', 'V9')">V9</button>
+                    <button class="example-btn" onclick="setExample('degree', 'bVII')">bVII</button>
+                    
+                    <!-- Jazz progressions -->
+                    <button class="example-btn" onclick="setExample('degree', 'viø7')">viø7</button>
+                    <button class="example-btn" onclick="setExample('degree', 'V7/V')">V7/V</button>
+                    <button class="example-btn" onclick="setExample('degree', 'bII7')">bII7</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="chordlock.js"></script>
+    <script>
+        let chordlock = null;
+
+        // Initialize Chordlock
+        ChordlockModule().then(function(Module) {
+            chordlock = Module;
+            chordlock.ccall('chordlock_init', null, [], []);
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main-interface').style.display = 'block';
+        }).catch(function(err) {
+            console.error('Failed to load Chordlock:', err);
+            document.getElementById('loading').innerHTML = '<p>Failed to load Chordlock engine</p>';
+        });
+
+        function convertChordToNotes() {
+            if (!chordlock) return;
+            
+            const chordName = document.getElementById('chordInput').value.trim();
+            const keySelect = document.getElementById('keySelect');
+            const keyValue = parseInt(keySelect.value);
+            const resultDiv = document.getElementById('chordResult');
+            const degreeDiv = document.getElementById('chordDegree');
+            
+            if (!chordName) {
+                resultDiv.textContent = 'Please enter a chord name';
+                degreeDiv.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const result = chordlock.ccall('chordlock_chord_name_to_notes_json', 'string', ['string', 'number'], [chordName, 4]);
+                const data = JSON.parse(result);
+                
+                if (data.error) {
+                    resultDiv.textContent = `Error: ${data.error}`;
+                    degreeDiv.style.display = 'none';
+                } else {
+                    resultDiv.textContent = `[${data.notes.join(', ')}]\n\nNote names: [${data.noteNames.join(', ')}]`;
+                    
+                    // Show degree analysis if key is selected
+                    if (keyValue >= 0) {
+                        try {
+                            // For simplicity, we'll use a basic chord name analysis
+                            // In a full implementation, you'd want more sophisticated parsing
+                            degreeDiv.style.display = 'block';
+                            degreeDiv.textContent = 'Roman Numeral: (analyzing chord name...)';
+                        } catch (e) {
+                            degreeDiv.style.display = 'none';
+                        }
+                    } else {
+                        degreeDiv.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                resultDiv.textContent = `Error: ${e.message}`;
+                degreeDiv.style.display = 'none';
+            }
+        }
+
+        function convertDegreeToNotes() {
+            if (!chordlock) return;
+            
+            const degree = document.getElementById('degreeInput').value.trim();
+            const keySelect = document.getElementById('keySelect');
+            const keyValue = parseInt(keySelect.value);
+            const resultDiv = document.getElementById('degreeResult');
+            
+            if (!degree) {
+                resultDiv.textContent = 'Please enter a Roman numeral';
+                return;
+            }
+            
+            if (keyValue < 0) {
+                resultDiv.textContent = 'Please select a key for Roman numeral analysis';
+                return;
+            }
+            
+            try {
+                const result = chordlock.ccall('chordlock_degree_to_notes_json', 'string', ['string', 'number', 'number'], [degree, keyValue, 4]);
+                const data = JSON.parse(result);
+                
+                if (data.error) {
+                    resultDiv.textContent = `Error: ${data.error}`;
+                } else {
+                    resultDiv.textContent = `Chord: ${data.chordName}\nNotes: [${data.notes.join(', ')}]\nKey: ${data.key}`;
+                }
+            } catch (e) {
+                resultDiv.textContent = `Error: ${e.message}`;
+            }
+        }
+
+        function setExample(type, value) {
+            if (type === 'chord') {
+                document.getElementById('chordInput').value = value;
+                convertChordToNotes();
+            } else if (type === 'degree') {
+                document.getElementById('degreeInput').value = value;
+                convertDegreeToNotes();
+            }
+        }
+
+        // Allow Enter key to trigger conversion
+        document.getElementById('chordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertChordToNotes();
+            }
+        });
+
+        document.getElementById('degreeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertDegreeToNotes();
+            }
+        });
+    </script>
+</body>
+</html>

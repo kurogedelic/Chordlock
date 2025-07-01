@@ -1219,3 +1219,230 @@ std::string Chordlock::getCanonicalChordName(const std::string& root, const std:
     // For single note or two notes, just return root
     return root;
 }
+
+// Degree analysis methods implementation
+std::string Chordlock::degreeToChordName(const std::string& degree, int tonic, bool isMinor) {
+    if (tonic < 0 || tonic > 11) {
+        return ""; // Invalid tonic
+    }
+    
+    // Note names
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    
+    // Parse degree (supports lowercase/uppercase, with optional extensions)
+    std::string degreeStr = degree;
+    std::transform(degreeStr.begin(), degreeStr.end(), degreeStr.begin(), ::tolower);
+    
+    // Major scale intervals from tonic
+    int majorScaleIntervals[] = {0, 2, 4, 5, 7, 9, 11}; // I, ii, iii, IV, V, vi, vii
+    // Minor scale intervals from tonic  
+    int minorScaleIntervals[] = {0, 2, 3, 5, 7, 8, 10}; // i, ii, bIII, iv, v, bVI, bVII
+    
+    // Default chord qualities in major/minor keys
+    const char* majorQualities[] = {"", "m", "m", "", "", "m", "dim"};
+    const char* minorQualities[] = {"m", "dim", "", "m", "m", "", ""};
+    
+    int degreeIndex = -1;
+    std::string quality = "";
+    std::string extension = "";
+    
+    // Parse Roman numeral degree
+    if (degreeStr.find("i") == 0) {
+        degreeIndex = 0;
+        if (degreeStr.length() > 1 && degreeStr[1] == 'i') {
+            if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+                degreeIndex = 2; // iii
+            } else {
+                degreeIndex = 1; // ii
+            }
+        }
+    } else if (degreeStr.find("ii") == 0) {
+        degreeIndex = 1;
+        if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+            degreeIndex = 2; // iii
+        }
+    } else if (degreeStr.find("iii") == 0) {
+        degreeIndex = 2;
+    } else if (degreeStr.find("iv") == 0) {
+        degreeIndex = 3;
+    } else if (degreeStr.find("v") == 0) {
+        degreeIndex = 4;
+        if (degreeStr.length() > 1 && degreeStr[1] == 'i') {
+            if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+                degreeIndex = 6; // vii
+            } else {
+                degreeIndex = 5; // vi
+            }
+        }
+    } else if (degreeStr.find("vi") == 0) {
+        degreeIndex = 5;
+        if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+            degreeIndex = 6; // vii
+        }
+    } else if (degreeStr.find("vii") == 0) {
+        degreeIndex = 6;
+    }
+    
+    if (degreeIndex == -1) {
+        return ""; // Invalid degree
+    }
+    
+    // Calculate root note
+    int rootNote;
+    if (isMinor) {
+        rootNote = (tonic + minorScaleIntervals[degreeIndex]) % 12;
+        quality = minorQualities[degreeIndex];
+    } else {
+        rootNote = (tonic + majorScaleIntervals[degreeIndex]) % 12;
+        quality = majorQualities[degreeIndex];
+    }
+    
+    // Parse extensions (7, 9, etc.)
+    size_t pos = degree.find('7');
+    if (pos != std::string::npos) {
+        extension = "7";
+    } else {
+        pos = degree.find('9');
+        if (pos != std::string::npos) {
+            extension = "9";
+        }
+    }
+    
+    // Override quality for uppercase Roman numerals (major chords)
+    if (degree[0] >= 'A' && degree[0] <= 'Z') {
+        if (degreeIndex == 1 || degreeIndex == 2 || degreeIndex == 5) {
+            // Naturally minor degrees in major key become major
+            quality = "";
+        }
+    }
+    
+    return std::string(noteNames[rootNote]) + quality + extension;
+}
+
+std::vector<int> Chordlock::degreeToNotes(const std::string& degree, int tonic, bool isMinor, int rootOctave) {
+    std::string chordName = degreeToChordName(degree, tonic, isMinor);
+    if (chordName.empty()) {
+        return {};
+    }
+    
+    return chordNameToNotes(chordName, rootOctave);
+}
+
+std::string Chordlock::degreeToNotesJSON(const std::string& degree, int tonic, bool isMinor, int rootOctave) {
+    std::string chordName = degreeToChordName(degree, tonic, isMinor);
+    if (chordName.empty()) {
+        return "{\"error\": \"Invalid degree specification\"}";
+    }
+    
+    auto notes = degreeToNotes(degree, tonic, isMinor, rootOctave);
+    if (notes.empty()) {
+        return "{\"error\": \"Could not generate notes for degree\"}";
+    }
+    
+    std::ostringstream json;
+    json << "{";
+    json << "\"degree\": \"" << degree << "\", ";
+    json << "\"chordName\": \"" << chordName << "\", ";
+    json << "\"notes\": [";
+    for (size_t i = 0; i < notes.size(); i++) {
+        json << notes[i];
+        if (i < notes.size() - 1) json << ", ";
+    }
+    json << "], ";
+    json << "\"key\": \"";
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    json << noteNames[tonic] << (isMinor ? " minor" : " major") << "\"";
+    json << "}";
+    
+    return json.str();
+}
+
+// Reverse degree analysis methods implementation
+std::string Chordlock::analyzeDegree(const std::string& chordName, int tonic, bool isMinor) {
+    if (tonic < 0 || tonic > 11 || chordName.empty()) {
+        return "";
+    }
+    
+    // Parse chord to get root note
+    int rootNote = noteNameToNumber(chordName.substr(0, chordName.find_first_not_of("CDEFGAB#b")));
+    if (rootNote == -1) {
+        return "";
+    }
+    
+    // Calculate interval from tonic
+    int interval = (rootNote - tonic + 12) % 12;
+    
+    // Scale degrees and their Roman numerals
+    int majorScaleIntervals[] = {0, 2, 4, 5, 7, 9, 11}; // I, ii, iii, IV, V, vi, vii
+    int minorScaleIntervals[] = {0, 2, 3, 5, 7, 8, 10}; // i, ii, bIII, iv, v, bVI, bVII
+    
+    const char* majorNumerals[] = {"I", "ii", "iii", "IV", "V", "vi", "vii"};
+    const char* minorNumerals[] = {"i", "ii", "bIII", "iv", "v", "bVI", "bVII"};
+    
+    // Find matching scale degree
+    for (int i = 0; i < 7; i++) {
+        int scaleInterval = isMinor ? minorScaleIntervals[i] : majorScaleIntervals[i];
+        if (interval == scaleInterval) {
+            std::string numeral = isMinor ? minorNumerals[i] : majorNumerals[i];
+            
+            // Add chord quality extensions
+            if (chordName.find("7") != std::string::npos) {
+                numeral += "7";
+            }
+            if (chordName.find("9") != std::string::npos) {
+                numeral += "9";
+            }
+            if (chordName.find("11") != std::string::npos) {
+                numeral += "11";
+            }
+            if (chordName.find("13") != std::string::npos) {
+                numeral += "13";
+            }
+            
+            // Handle altered qualities
+            if (chordName.find("dim") != std::string::npos) {
+                numeral += "°";
+            }
+            if (chordName.find("aug") != std::string::npos || chordName.find("+") != std::string::npos) {
+                numeral += "+";
+            }
+            
+            return numeral;
+        }
+    }
+    
+    // Handle chromatic alterations
+    const char* chromaticNumerals[] = {"I", "bII", "II", "bIII", "III", "IV", "bV", "V", "bVI", "VI", "bVII", "VII"};
+    return chromaticNumerals[interval];
+}
+
+std::string Chordlock::analyzeNotesToDegree(const std::vector<int>& notes, int tonic, bool isMinor) {
+    if (notes.empty()) {
+        return "";
+    }
+    
+    // Set notes in engine and detect chord
+    clearAllNotes();
+    for (int note : notes) {
+        noteOn(note, 80);
+    }
+    
+    auto result = detectChord();
+    clearAllNotes();
+    
+    if (!result.hasValidChord || result.chordName.empty()) {
+        return "";
+    }
+    
+    return analyzeDegree(result.chordName, tonic, isMinor);
+}
+
+std::string Chordlock::analyzeCurrentNotesToDegree(int tonic, bool isMinor) {
+    auto result = detectChord();
+    
+    if (!result.hasValidChord || result.chordName.empty()) {
+        return "";
+    }
+    
+    return analyzeDegree(result.chordName, tonic, isMinor);
+}

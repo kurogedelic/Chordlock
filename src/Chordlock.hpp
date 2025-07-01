@@ -128,6 +128,16 @@ public:
     std::vector<std::string> findSimilarChordNames(const std::string& input);
     std::string chordNameToNotesJSON(const std::string& chordName, int rootOctave = 4);
     
+    // Degree analysis methods (Roman numeral -> chord name/notes)
+    std::string degreeToChordName(const std::string& degree, int tonic, bool isMinor);
+    std::vector<int> degreeToNotes(const std::string& degree, int tonic, bool isMinor, int rootOctave = 4);
+    std::string degreeToNotesJSON(const std::string& degree, int tonic, bool isMinor, int rootOctave = 4);
+    
+    // Reverse degree analysis methods (notes/chord -> Roman numeral)
+    std::string analyzeDegree(const std::string& chordName, int tonic, bool isMinor);
+    std::string analyzeNotesToDegree(const std::vector<int>& notes, int tonic, bool isMinor);
+    std::string analyzeCurrentNotesToDegree(int tonic, bool isMinor);
+    
     // WebAssembly compatibility methods
     std::string detectChordJSON();
     void setNotesFromJSON(const std::string& jsonNotes);

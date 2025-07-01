@@ -1,6 +1,5 @@
 #include "Chordlock.hpp"
 #include <emscripten/emscripten.h>
-#include <emscripten/bind.h>
 #include <string>
 #include <vector>
 
@@ -227,6 +226,59 @@ float chordlock_calculate_complexity() {
     return g_chordlock->calculateChordComplexity();
 }
 
+// Key context functions
+EMSCRIPTEN_KEEPALIVE
+void chordlock_set_key(int tonic) {
+    if (g_chordlock && tonic >= 0 && tonic <= 23) {
+        bool isMinor = tonic >= 12;
+        int realTonic = tonic % 12;
+        g_chordlock->setKeyContext(realTonic, isMinor);
+    }
+}
+
+// Degree analysis functions
+EMSCRIPTEN_KEEPALIVE
+const char* chordlock_analyze_current_degree(int tonic) {
+    if (!g_chordlock || tonic < 0 || tonic > 23) {
+        return "";
+    }
+    
+    bool isMinor = tonic >= 12;
+    int realTonic = tonic % 12;
+    
+    static std::string result;
+    result = g_chordlock->analyzeCurrentNotesToDegree(realTonic, isMinor);
+    return result.c_str();
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* chordlock_degree_to_chord_name(const char* degree, int tonic) {
+    if (!g_chordlock || !degree || tonic < 0 || tonic > 23) {
+        return "";
+    }
+    
+    bool isMinor = tonic >= 12;
+    int realTonic = tonic % 12;
+    
+    static std::string result;
+    result = g_chordlock->degreeToChordName(std::string(degree), realTonic, isMinor);
+    return result.c_str();
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* chordlock_degree_to_notes_json(const char* degree, int tonic, int rootOctave) {
+    if (!g_chordlock || !degree || tonic < 0 || tonic > 23) {
+        return "{\"error\": \"Invalid parameters\"}";
+    }
+    
+    bool isMinor = tonic >= 12;
+    int realTonic = tonic % 12;
+    
+    static std::string result;
+    result = g_chordlock->degreeToNotesJSON(std::string(degree), realTonic, isMinor, rootOctave);
+    return result.c_str();
+}
+
 // Batch processing for performance
 EMSCRIPTEN_KEEPALIVE
 void chordlock_set_chord_from_array(int* midiNotes, int noteCount, int velocity) {
@@ -350,32 +402,3 @@ const char* chordlock_find_similar_chord_names(const char* input) {
 }
 
 } // extern "C"
-
-// Emscripten bindings for modern JavaScript (optional, but nice to have)
-EMSCRIPTEN_BINDINGS(chordlock_v3) {
-    emscripten::function("init", &chordlock_init);
-    emscripten::function("cleanup", &chordlock_cleanup);
-    emscripten::function("noteOn", &chordlock_note_on);
-    emscripten::function("noteOff", &chordlock_note_off);
-    emscripten::function("clearAllNotes", &chordlock_clear_all_notes);
-    emscripten::function("detectChord", &chordlock_detect_chord, emscripten::allow_raw_pointers());
-    emscripten::function("detectChordDetailed", &chordlock_detect_chord_detailed, emscripten::allow_raw_pointers());
-    emscripten::function("getVersion", &chordlock_get_version, emscripten::allow_raw_pointers());
-    emscripten::function("getStatistics", &chordlock_get_statistics, emscripten::allow_raw_pointers());
-    emscripten::function("getEngineInfo", &chordlock_get_engine_info, emscripten::allow_raw_pointers());
-    emscripten::function("setNotesFromJSON", &chordlock_set_notes_from_json, emscripten::allow_raw_pointers());
-    emscripten::function("setVelocitySensitivity", &chordlock_set_velocity_sensitivity);
-    emscripten::function("setSlashChordDetection", &chordlock_set_slash_chord_detection);
-    emscripten::function("setConfidenceThreshold", &chordlock_set_confidence_threshold);
-    emscripten::function("setKeySignature", &chordlock_set_key_signature);
-    emscripten::function("isChordActive", &chordlock_is_chord_active);
-    emscripten::function("getCurrentMask", &chordlock_get_current_mask);
-    emscripten::function("calculateComplexity", &chordlock_calculate_complexity);
-    emscripten::function("testDominant11th", &chordlock_test_dominant_11th, emscripten::allow_raw_pointers());
-    emscripten::function("benchmarkPerformance", &chordlock_benchmark_performance, emscripten::allow_raw_pointers());
-    
-    // Reverse chord lookup functions
-    emscripten::function("chordNameToNotesJSON", &chordlock_chord_name_to_notes_json, emscripten::allow_raw_pointers());
-    emscripten::function("chordNameToNotesWithAlternatives", &chordlock_chord_name_to_notes_with_alternatives, emscripten::allow_raw_pointers());
-    emscripten::function("findSimilarChordNames", &chordlock_find_similar_chord_names, emscripten::allow_raw_pointers());
-}

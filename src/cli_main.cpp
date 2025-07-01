@@ -19,6 +19,10 @@
 Chordlock chordlock;
 bool running = true;
 
+// Global key context for degree analysis
+int globalTonic = -1;
+bool globalIsMinor = false;
+
 // Simple MIDI input for macOS using Core MIDI
 #ifdef __APPLE__
 void ChordlockMIDIReadProc(const MIDIPacketList *pktlist, void *refCon, void *connRefCon) {
@@ -224,13 +228,32 @@ void processNotes(const std::vector<int>& notes) {
         std::cout << " (confidence: " << std::fixed << std::setprecision(2) << result.confidence << ")" << std::endl;
     }
     
+    // Show degree analysis if key context is available
+    if (globalTonic >= 0 && result.hasValidChord && result.chordName != "No Chord") {
+        std::string degree = chordlock.analyzeDegree(result.chordName, globalTonic, globalIsMinor);
+        if (!degree.empty()) {
+            const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+            std::cout << "Roman Numeral: " << degree 
+                      << " (in " << noteNames[globalTonic] << (globalIsMinor ? " minor" : " major") << ")" << std::endl;
+        }
+    }
+    
     // Show alternatives
     if (result.alternativeChords.size() > 0) {
         std::cout << "\nAlternative interpretations:" << std::endl;
         for (size_t i = 0; i < result.alternativeChords.size(); ++i) {
             std::cout << "  " << result.alternativeChords[i]
                       << " (" << std::fixed << std::setprecision(2) 
-                      << result.alternativeConfidences[i] << ")" << std::endl;
+                      << result.alternativeConfidences[i] << ")";
+            
+            // Show degree for alternatives too
+            if (globalTonic >= 0) {
+                std::string altDegree = chordlock.analyzeDegree(result.alternativeChords[i], globalTonic, globalIsMinor);
+                if (!altDegree.empty()) {
+                    std::cout << " [" << altDegree << "]";
+                }
+            }
+            std::cout << std::endl;
         }
     }
 }
@@ -246,6 +269,7 @@ int main(int argc, char* argv[]) {
     std::string filename = "";
     std::string chordName = "";
     std::string keyInput = "";
+    std::string degreeInput = "";
     bool midiMode = true;
     
     for (int i = 1; i < argc; ++i) {
@@ -265,6 +289,9 @@ int main(int argc, char* argv[]) {
             midiMode = false;
         } else if ((arg == "--key" || arg == "-k") && i + 1 < argc) {
             keyInput = argv[++i];
+        } else if ((arg == "--degree" || arg == "-d") && i + 1 < argc) {
+            degreeInput = argv[++i];
+            midiMode = false;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
             std::cout << "Options:" << std::endl;
@@ -274,6 +301,7 @@ int main(int argc, char* argv[]) {
             std::cout << "  -f, --file <filename>   Read notes from file (one set per line)" << std::endl;
             std::cout << "  -c, --chord <name>      Convert chord name to MIDI notes (e.g., \"Cmaj7\", \"F#m\")" << std::endl;
             std::cout << "  -k, --key <key>         Set key context for rootless/polychord analysis (e.g., \"C\", \"Bb\", \"Fm\")" << std::endl;
+            std::cout << "  -d, --degree <degree>   Convert degree to MIDI notes (requires -k, e.g., \"I\", \"vi7\", \"V9\")" << std::endl;
             std::cout << "  -h, --help              Show this help message" << std::endl;
             std::cout << "\nExamples:" << std::endl;
             std::cout << "  " << argv[0] << " -N 60,64,67           # Analyze C major chord" << std::endl;
@@ -282,6 +310,8 @@ int main(int argc, char* argv[]) {
             std::cout << "  " << argv[0] << " -c \"CM7\"             # Convert CM7 to MIDI notes (with fallback)" << std::endl;
             std::cout << "  " << argv[0] << " -f chords.txt         # Read from file" << std::endl;
             std::cout << "  " << argv[0] << " -N 67,71,74,79 -k C   # Analyze with C major key context" << std::endl;
+            std::cout << "  " << argv[0] << " -d \"V7\" -k C         # Generate V7 chord in C major (G7)" << std::endl;
+            std::cout << "  " << argv[0] << " -d \"ii7\" -k Am       # Generate ii7 chord in A minor (Bm7b5)" << std::endl;
             return 0;
         }
     }
@@ -296,6 +326,9 @@ int main(int argc, char* argv[]) {
         keyInfo = parseKeyName(keyInput);
         if (keyInfo.first >= 0) {
             chordlock.setKeyContext(keyInfo.first, keyInfo.second);
+            // Set global key context for degree analysis
+            globalTonic = keyInfo.first;
+            globalIsMinor = keyInfo.second;
         } else {
             std::cerr << "Warning: Invalid key name '" << keyInput << "', ignoring key context" << std::endl;
         }
@@ -311,6 +344,13 @@ int main(int argc, char* argv[]) {
         std::cout << "  Key context: none" << std::endl;
     }
     std::cout << std::endl;
+    
+    // Validate degree input requires key context
+    if (!degreeInput.empty() && keyInfo.first < 0) {
+        std::cerr << "Error: Degree analysis (-d) requires key context (-k)" << std::endl;
+        std::cerr << "Example: " << argv[0] << " -d \"V7\" -k C" << std::endl;
+        return 1;
+    }
     
     // Process based on mode
     if (!chordName.empty()) {
@@ -372,6 +412,53 @@ int main(int argc, char* argv[]) {
         // Show JSON format
         std::cout << std::endl << "📄 JSON format:" << std::endl;
         std::cout << chordlock.chordNameToNotesJSON(chordName, 4) << std::endl;
+        
+    } else if (!degreeInput.empty()) {
+        // Degree to notes conversion mode
+        std::cout << "🎼 Degree to MIDI Notes Conversion" << std::endl;
+        std::cout << "===================================" << std::endl;
+        const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        std::cout << "Input degree: " << degreeInput << std::endl;
+        std::cout << "In key: " << noteNames[keyInfo.first] << (keyInfo.second ? " minor" : " major") << std::endl << std::endl;
+        
+        // Convert degree to chord name
+        std::string chordName = chordlock.degreeToChordName(degreeInput, keyInfo.first, keyInfo.second);
+        if (chordName.empty()) {
+            std::cerr << "❌ Error: Invalid degree specification '" << degreeInput << "'" << std::endl;
+            std::cerr << "Valid examples: I, ii, iii, IV, V, vi, vii, V7, ii7, etc." << std::endl;
+            return 1;
+        }
+        
+        // Convert to notes
+        auto notes = chordlock.degreeToNotes(degreeInput, keyInfo.first, keyInfo.second, 4);
+        if (!notes.empty()) {
+            std::cout << "✅ Degree result:" << std::endl;
+            std::cout << "  Chord name: " << chordName << std::endl;
+            std::cout << "  MIDI Notes: [";
+            for (size_t i = 0; i < notes.size(); i++) {
+                std::cout << notes[i];
+                if (i < notes.size() - 1) std::cout << ", ";
+            }
+            std::cout << "]" << std::endl;
+            
+            // Show note names
+            const char* chromaticNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+            std::cout << "  Note names: [";
+            for (size_t i = 0; i < notes.size(); i++) {
+                int octave = notes[i] / 12;
+                int pitch = notes[i] % 12;
+                std::cout << chromaticNames[pitch] << octave;
+                if (i < notes.size() - 1) std::cout << ", ";
+            }
+            std::cout << "]" << std::endl;
+        } else {
+            std::cerr << "❌ Error: Could not generate notes for chord '" << chordName << "'" << std::endl;
+            return 1;
+        }
+        
+        // Show JSON format
+        std::cout << std::endl << "📄 JSON format:" << std::endl;
+        std::cout << chordlock.degreeToNotesJSON(degreeInput, keyInfo.first, keyInfo.second, 4) << std::endl;
         
     } else if (!noteInput.empty()) {
         // Direct note input mode
