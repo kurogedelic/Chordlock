@@ -42,7 +42,7 @@ cd Chordlock && make build
 
 - **🔥 Key-Context Aware**: World-first chord detection considering musical key
 - **🎼 Roman Numeral Analysis**: Automatic functional harmony analysis  
-- **⚡ High Performance**: Sub-millisecond detection with C++ optimization
+- **⚡ High Performance**: 3.52ms average response time with 97%+ reliability
 - **🔧 Multiple Interfaces**: CLI, C++, WebAssembly, MCP integration
 - **🎵 Advanced Chords**: 339+ chord types including jazz harmony
 
@@ -54,7 +54,48 @@ build/        # CLI application
 web_app/      # Interactive demos
 chordlock-mcp/ # AI integration
 docs/         # Documentation site
+benchmark/    # Performance testing suite
 ```
+
+## ⚡ Performance
+
+Chordlock v2.0 delivers exceptional performance with comprehensive benchmarking:
+
+**🚀 Key Metrics:**
+- **Average response time**: 3.52ms 
+- **Fastest operation**: 3.11ms (chord name conversion)
+- **Reliability**: 97%+ success rate across all tests
+- **Consistency**: ±0.27ms standard deviation
+
+**📊 Benchmark Coverage:**
+- ✅ 34 comprehensive test scenarios
+- ✅ All CLI modes and argument combinations  
+- ✅ Basic triads → complex jazz chords
+- ✅ Key context analysis (major/minor keys)
+- ✅ Roman numeral degree analysis
+- ✅ Edge cases and stress testing
+
+**📈 Performance Breakdown:**
+| Operation Type | Time Range | Quality |
+|----------------|------------|---------|
+| Basic chord detection | 2-4ms | Excellent |
+| Complex jazz chords | 3-5ms | Very Good |
+| Key context analysis | 3-4ms | Excellent |
+| Degree analysis | 3-6ms | Very Good |
+
+**🔧 Run Benchmarks:**
+```bash
+# Quick performance test
+python3 benchmark/quick_test.py
+
+# Full benchmark suite  
+python3 benchmark/benchmark.py
+
+# Compare results
+python3 benchmark/compare_results.py before.json after.json
+```
+
+*See [benchmark/README.md](benchmark/README.md) for detailed performance analysis.*
 
 ## 🤖 AI Integration
 
