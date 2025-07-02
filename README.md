@@ -34,7 +34,6 @@ cd Chordlock && make build
 - [🎼 Key Context Analysis](https://kurogedelic.github.io/Chordlock/docs/installation)
 
 **🎹 Interactive Web Applications:**
-- [🎵 Audio Chord Detection](https://kurogedelic.github.io/Chordlock/web_app/) - Real-time audio analysis
 - [🎹 Simple Piano](https://kurogedelic.github.io/Chordlock/web_app/simple-piano.html) - Visual chord testing
 - [📚 Chord Dictionary](https://kurogedelic.github.io/Chordlock/web_app/dictionary.html) - Chord ↔ Notes converter
 
