@@ -283,6 +283,73 @@
             color: var(--text-color);
             opacity: 0.8;
         }
+        
+        .midi-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .midi-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .midi-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            transition: all 0.3s ease;
+        }
+        
+        .status-indicator.connected {
+            background: #4CAF50;
+            box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+        }
+        
+        .status-indicator.error {
+            background: #f44336;
+            box-shadow: 0 0 6px rgba(244, 67, 54, 0.6);
+        }
+        
+        .midi-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-size: 14px;
+            min-width: 200px;
+            cursor: pointer;
+        }
+        
+        .midi-select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .midi-info {
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-top: 8px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -307,7 +374,24 @@
             </div>
 
             <div class="status-info">
-                Click piano keys to detect chords in real-time
+                Click piano keys or connect MIDI device for real-time chord detection
+            </div>
+
+            <!-- MIDI Input Section -->
+            <div class="midi-section">
+                <h3 style="text-align: center; margin-bottom: 16px;">🎹 MIDI Input</h3>
+                <div class="midi-controls">
+                    <div class="midi-status">
+                        <div class="status-indicator" id="midiStatus"></div>
+                        <span id="midiStatusText">MIDI Not Available</span>
+                    </div>
+                    <select class="midi-select" id="midiDeviceSelect" disabled>
+                        <option value="">No MIDI devices</option>
+                    </select>
+                </div>
+                <div class="midi-info" id="midiInfo">
+                    Web MIDI API allows real-time MIDI input from external keyboards and controllers
+                </div>
             </div>
 
             <div class="chord-display">
@@ -365,6 +449,8 @@
     <script>
         let chordlock = null;
         let activeNotes = new Set();
+        let midiAccess = null;
+        let selectedMidiInput = null;
 
         // Initialize Chordlock
         ChordlockModule().then(function(Module) {
@@ -376,6 +462,7 @@
             
             generatePiano();
             updateChordDisplay();
+            initializeMIDI();
         }).catch(function(err) {
             console.error('Failed to load Chordlock:', err);
             document.getElementById('loading').innerHTML = 'Failed to load Chordlock engine';
@@ -562,6 +649,147 @@
 
         function testChord4() {
             setNotes([66, 69, 72, 76]); // F#m7b5
+        }
+
+        // MIDI Functions
+        async function initializeMIDI() {
+            if (!navigator.requestMIDIAccess) {
+                updateMidiStatus('error', 'Web MIDI API not supported');
+                document.getElementById('midiInfo').textContent = 'Web MIDI API is not supported in this browser. Try Chrome, Edge, or Opera.';
+                return;
+            }
+
+            try {
+                midiAccess = await navigator.requestMIDIAccess();
+                updateMidiStatus('connected', 'MIDI Ready');
+                document.getElementById('midiInfo').textContent = 'MIDI access granted. Connect a MIDI device to see it in the dropdown.';
+                
+                // Populate device list
+                populateMidiDevices();
+                
+                // Listen for device changes
+                midiAccess.onstatechange = handleMidiStateChange;
+                
+            } catch (error) {
+                console.error('Failed to get MIDI access:', error);
+                updateMidiStatus('error', 'MIDI Access Denied');
+                document.getElementById('midiInfo').textContent = 'MIDI access was denied. Please refresh and allow MIDI access.';
+            }
+        }
+
+        function updateMidiStatus(status, text) {
+            const indicator = document.getElementById('midiStatus');
+            const statusText = document.getElementById('midiStatusText');
+            
+            indicator.className = `status-indicator ${status}`;
+            statusText.textContent = text;
+        }
+
+        function populateMidiDevices() {
+            const select = document.getElementById('midiDeviceSelect');
+            select.innerHTML = '<option value="">Select MIDI Device</option>';
+            
+            let deviceCount = 0;
+            for (let input of midiAccess.inputs.values()) {
+                const option = document.createElement('option');
+                option.value = input.id;
+                option.textContent = `${input.name} (${input.manufacturer || 'Unknown'})`;
+                select.appendChild(option);
+                deviceCount++;
+            }
+            
+            if (deviceCount > 0) {
+                select.disabled = false;
+                select.onchange = handleMidiDeviceChange;
+                updateMidiStatus('connected', `${deviceCount} MIDI device(s) available`);
+            } else {
+                select.disabled = true;
+                updateMidiStatus('connected', 'No MIDI devices connected');
+            }
+        }
+
+        function handleMidiStateChange(event) {
+            console.log('MIDI device state changed:', event.port.name, event.port.state);
+            populateMidiDevices();
+            
+            // If selected device was disconnected, clear selection
+            if (selectedMidiInput && event.port.id === selectedMidiInput.id && event.port.state === 'disconnected') {
+                selectedMidiInput = null;
+                document.getElementById('midiDeviceSelect').value = '';
+            }
+        }
+
+        function handleMidiDeviceChange(event) {
+            const deviceId = event.target.value;
+            
+            // Disconnect previous device
+            if (selectedMidiInput) {
+                selectedMidiInput.onmidimessage = null;
+            }
+            
+            if (deviceId) {
+                selectedMidiInput = midiAccess.inputs.get(deviceId);
+                if (selectedMidiInput) {
+                    selectedMidiInput.onmidimessage = handleMidiMessage;
+                    updateMidiStatus('connected', `Connected to ${selectedMidiInput.name}`);
+                    document.getElementById('midiInfo').textContent = `Receiving MIDI from: ${selectedMidiInput.name}`;
+                }
+            } else {
+                selectedMidiInput = null;
+                updateMidiStatus('connected', 'No device selected');
+                document.getElementById('midiInfo').textContent = 'Select a MIDI device from the dropdown to enable input.';
+            }
+        }
+
+        function handleMidiMessage(message) {
+            const [status, data1, data2] = message.data;
+            const command = status & 0xf0;
+            const channel = status & 0x0f;
+            
+            // Note On (0x90) and Note Off (0x80)
+            if (command === 0x90 && data2 > 0) {
+                // Note On
+                handleMidiNoteOn(data1, data2);
+            } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
+                // Note Off
+                handleMidiNoteOff(data1);
+            }
+        }
+
+        function handleMidiNoteOn(midiNote, velocity) {
+            // Visual feedback
+            const key = document.getElementById('key-' + midiNote);
+            if (key) {
+                key.classList.add('active');
+            }
+            
+            // Add to active notes
+            activeNotes.add(midiNote);
+            
+            // Send to Chordlock
+            if (chordlock) {
+                chordlock.ccall('chordlock_note_on', null, ['number', 'number'], [midiNote, velocity]);
+            }
+            
+            updateChordDisplay();
+        }
+
+        function handleMidiNoteOff(midiNote) {
+            // Visual feedback
+            const key = document.getElementById('key-' + midiNote);
+            if (key) {
+                key.classList.remove('active');
+            }
+            
+            // Remove from active notes
+            activeNotes.delete(midiNote);
+            
+            // Send to Chordlock
+            if (chordlock) {
+                chordlock.ccall('chordlock_note_off', null, ['number'], [midiNote]);
+            }
+            
+            updateChordDisplay();
         }
     </script>
 </body>
