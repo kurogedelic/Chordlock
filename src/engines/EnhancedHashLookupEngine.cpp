@@ -2412,7 +2412,15 @@ float EnhancedHashLookupEngine::calculateKeyBoost(const std::string& chordName, 
         
         // Tonic function gets absolute priority
         if (isTonicFunction) {
-            boost += 2.0f; // Massive tonic boost (total +3.2f) to ensure priority over slash chords
+            // CRITICAL FIX: Prevent incorrect tonic boost for A-C-E interpreted as C(add6)
+            // A-C-E (mask 0x0211) should always be Am, never C(add6) in any key
+            if (mask == 0x0211 && chordName.find("C") == 0) {
+                // This is A-C-E being incorrectly interpreted as C-based chord
+                // Apply penalty instead of boost
+                boost *= 0.1f; // Strong penalty to discourage this interpretation
+            } else {
+                boost += 2.0f; // Massive tonic boost (total +3.2f) to ensure priority over slash chords
+            }
         }
         // Dominant function gets strong priority
         else if (isDominantFunction) {
@@ -2522,16 +2530,31 @@ std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> EnhancedHashLookup
         bool hasMinorTriad = (mask & minorTriad) == minorTriad;
         
         // Allow incomplete triads if root + third are present and we have extensions
+        // BUT first check if there's a complete triad available elsewhere to avoid false positives
         bool hasIncompleteMinor = false;
         bool hasIncompleteMajor = false;
         uint16_t minimalMinor = (1 << root) | (1 << ((root + 3) % 12)); // Root + minor third
         uint16_t minimalMajor = (1 << root) | (1 << ((root + 4) % 12)); // Root + major third
         
-        if ((mask & minimalMinor) == minimalMinor && __builtin_popcount(mask) >= 3) {
-            hasIncompleteMinor = true;
+        // Check if there's any complete triad in the mask before allowing incomplete interpretations
+        bool hasCompleteTriadElsewhere = false;
+        for (int checkRoot = 0; checkRoot < 12; checkRoot++) {
+            uint16_t checkMajorTriad = (1 << checkRoot) | (1 << ((checkRoot + 4) % 12)) | (1 << ((checkRoot + 7) % 12));
+            uint16_t checkMinorTriad = (1 << checkRoot) | (1 << ((checkRoot + 3) % 12)) | (1 << ((checkRoot + 7) % 12));
+            if (((mask & checkMajorTriad) == checkMajorTriad) || ((mask & checkMinorTriad) == checkMinorTriad)) {
+                hasCompleteTriadElsewhere = true;
+                break;
+            }
         }
-        if ((mask & minimalMajor) == minimalMajor && __builtin_popcount(mask) >= 3) {
-            hasIncompleteMajor = true;
+        
+        // Only allow incomplete triad interpretations if no complete triad exists
+        if (!hasCompleteTriadElsewhere) {
+            if ((mask & minimalMinor) == minimalMinor && __builtin_popcount(mask) >= 3) {
+                hasIncompleteMinor = true;
+            }
+            if ((mask & minimalMajor) == minimalMajor && __builtin_popcount(mask) >= 3) {
+                hasIncompleteMajor = true;
+            }
         }
         
         if (hasMajorTriad || hasMinorTriad || hasIncompleteMinor || hasIncompleteMajor) {

@@ -243,8 +243,9 @@ void processNotes(const std::vector<int>& notes, bool simpleOutput = false) {
         std::string degree = chordlock.analyzeDegree(result.chordName, globalTonic, globalIsMinor);
         if (!degree.empty()) {
             const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-            std::cout << "Roman Numeral: " << degree 
-                      << " (in " << noteNames[globalTonic] << (globalIsMinor ? " minor" : " major") << ")" << std::endl;
+            std::cout << "Degree: " << degree 
+                      << " in " << noteNames[globalTonic] << (globalIsMinor ? "m" : "") 
+                      << " = " << result.chordName << std::endl;
         }
     }
     
