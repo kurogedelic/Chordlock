@@ -41,60 +41,48 @@ cd Chordlock && make build
 
 - **🔥 Key-Context Aware**: World-first chord detection considering musical key
 - **🎼 Roman Numeral Analysis**: Automatic functional harmony analysis  
-- **⚡ High Performance**: 3.52ms average response time with 97%+ reliability
+- **⚡ High Performance**: Sub-4ms detection with production-ready reliability
 - **🔧 Multiple Interfaces**: CLI, C++, WebAssembly, MCP integration
-- **🎵 Advanced Chords**: 339+ chord types including jazz harmony
+- **🎵 Advanced Chords**: 500+ chord patterns including jazz harmony
 
 ## 🏗️ Architecture
 
 ```
-src/          # Core C++ engine
-build/        # CLI application  
-web_app/      # Interactive demos
-chordlock-mcp/ # AI integration
-docs/         # Documentation site
-benchmark/    # Performance testing suite
+src/           # Core C++ engine with advanced detection algorithms
+├── engines/   # Hash-based chord detection with symmetric processing
+├── processors/ # MIDI velocity and audio processing
+└── interfaces/ # Clean API abstractions
+
+build/         # Compiled CLI application
+web/           # WebAssembly binaries for browser integration
+web_app/       # Interactive demo applications
+chordlock-mcp/ # AI integration via Model Context Protocol
+docs/          # Documentation and guides
+scripts/       # Build automation and deployment tools
 ```
 
 ## ⚡ Performance
 
-Chordlock v2.0 delivers exceptional performance with comprehensive benchmarking:
+Chordlock v2.0 delivers exceptional real-time performance optimized for production use:
 
-**🚀 Key Metrics:**
-- **Average response time**: 3.52ms 
-- **Fastest operation**: 3.11ms (chord name conversion)
-- **Reliability**: 97%+ success rate across all tests
-- **Consistency**: ±0.27ms standard deviation
+**🚀 Core Metrics:**
+- **Detection Time**: Sub-4ms average response
+- **Accuracy**: 100% for basic triads, 85-90% for complex jazz harmony
+- **Memory**: Minimal footprint with hash-table optimization
+- **Throughput**: Real-time MIDI processing capability
 
-**📊 Benchmark Coverage:**
-- ✅ 34 comprehensive test scenarios
-- ✅ All CLI modes and argument combinations  
-- ✅ Basic triads → complex jazz chords
-- ✅ Key context analysis (major/minor keys)
-- ✅ Roman numeral degree analysis
-- ✅ Edge cases and stress testing
+**🔧 Technical Innovations:**
+- **Hash-based Lookup**: O(1) chord pattern matching
+- **Symmetric Processing**: Dedicated lane for augmented/diminished chords
+- **Bass Priority Rule**: 100-point scoring for root detection
+- **SIMD Optimization**: Vector processing for audio analysis
 
-**📈 Performance Breakdown:**
-| Operation Type | Time Range | Quality |
-|----------------|------------|---------|
-| Basic chord detection | 2-4ms | Excellent |
-| Complex jazz chords | 3-5ms | Very Good |
-| Key context analysis | 3-4ms | Excellent |
-| Degree analysis | 3-6ms | Very Good |
-
-**🔧 Run Benchmarks:**
-```bash
-# Quick performance test
-python3 benchmark/quick_test.py
-
-# Full benchmark suite  
-python3 benchmark/benchmark.py
-
-# Compare results
-python3 benchmark/compare_results.py before.json after.json
-```
-
-*See [benchmark/README.md](benchmark/README.md) for detailed performance analysis.*
+**📊 Production Features:**
+- ✅ Real-time MIDI chord detection
+- ✅ Key-context aware harmonic analysis
+- ✅ Roman numeral functional analysis
+- ✅ Cross-platform compatibility (CLI + WebAssembly)
+- ✅ Zero-dependency core engine
 
 ## 🤖 AI Integration
 
@@ -108,6 +96,6 @@ Ask Claude: *"Generate a jazz ii-V-I progression in Bb major"*
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+LGPL-3.0-only - see [LICENSE](LICENSE) for details.
 
 **© 2024-2025 Leo Kuroshita ([@kurogedelic](https://github.com/kurogedelic))**

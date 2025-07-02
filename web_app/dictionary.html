@@ -295,6 +295,56 @@
                 </div>
             </div>
 
+            <!-- Roman Numeral to Notes -->
+            <div class="card">
+                <h3>🔑 Roman Numeral → Notes</h3>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
+                    <div class="form-group" style="flex: 1; min-width: 120px;">
+                        <label for="degreeInput">Roman Numeral:</label>
+                        <input type="text" id="degreeInput" class="form-control" placeholder="e.g., V7, ii7, bVII" value="V7">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 100px;">
+                        <label for="degreeKeySelect">Key:</label>
+                        <select id="degreeKeySelect" class="form-control">
+                            <option value="0,0">C major</option>
+                            <option value="1,0">C# major</option>
+                            <option value="2,0">D major</option>
+                            <option value="3,0">D# major</option>
+                            <option value="4,0">E major</option>
+                            <option value="5,0">F major</option>
+                            <option value="6,0">F# major</option>
+                            <option value="7,0">G major</option>
+                            <option value="8,0">G# major</option>
+                            <option value="9,0">A major</option>
+                            <option value="10,0">A# major</option>
+                            <option value="11,0">B major</option>
+                            <option value="9,1">A minor</option>
+                            <option value="10,1">A# minor</option>
+                            <option value="11,1">B minor</option>
+                            <option value="0,1">C minor</option>
+                            <option value="1,1">C# minor</option>
+                            <option value="2,1">D minor</option>
+                            <option value="3,1">D# minor</option>
+                            <option value="4,1">E minor</option>
+                            <option value="5,1">F minor</option>
+                            <option value="6,1">F# minor</option>
+                            <option value="7,1">G minor</option>
+                            <option value="8,1">G# minor</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="convertDegreeToNotes()" class="btn">Generate Chord</button>
+                <div id="degreeResult" class="result-area">Enter a Roman numeral above</div>
+                
+                <div class="examples">
+                    <button class="example-btn" onclick="setDegreeExample('I', '0,0')">I in C</button>
+                    <button class="example-btn" onclick="setDegreeExample('V7', '0,0')">V7 in C</button>
+                    <button class="example-btn" onclick="setDegreeExample('ii7', '0,0')">ii7 in C</button>
+                    <button class="example-btn" onclick="setDegreeExample('i', '9,1')">i in Am</button>
+                    <button class="example-btn" onclick="setDegreeExample('bVII', '9,1')">bVII in Am</button>
+                </div>
+            </div>
+
             <!-- Piano Display -->
             <div class="card">
                 <h3>🎹 Piano Visualization</h3>
@@ -508,6 +558,61 @@
             detectChord();
         }
 
+        function convertDegreeToNotes() {
+            if (!chordlock) return;
+            
+            const degree = document.getElementById('degreeInput').value.trim();
+            const keyValue = document.getElementById('degreeKeySelect').value;
+            const resultDiv = document.getElementById('degreeResult');
+            
+            if (!degree) {
+                resultDiv.textContent = 'Please enter a Roman numeral (e.g., V7, ii7, bVII)';
+                return;
+            }
+            
+            try {
+                const [tonic, isMinor] = keyValue.split(',').map(Number);
+                
+                // Get chord name for the degree
+                const chordName = chordlock.ccall('chordlock_degree_to_chord_name', 'string', ['string', 'number'], [degree, tonic + (isMinor ? 12 : 0)]);
+                
+                // Get MIDI notes for the degree
+                const notesJson = chordlock.ccall('chordlock_degree_to_notes', 'string', ['string', 'number', 'number', 'number'], [degree, tonic, isMinor, 4]);
+                const notes = JSON.parse(notesJson);
+                
+                const keyNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                const keyName = keyNames[tonic] + (isMinor ? 'm' : '');
+                
+                if (notes && notes.length > 0 && chordName) {
+                    let output = `${degree} in ${keyName} = ${chordName}\n`;
+                    output += `MIDI Notes: [${notes.join(', ')}]\n`;
+                    output += `Note Names: ${notes.map(n => getNoteNameFromMidi(n)).join(', ')}`;
+                    resultDiv.textContent = output;
+                    highlightPianoKeys(notes);
+                } else {
+                    resultDiv.textContent = `Unable to generate chord for degree "${degree}" in ${keyName}`;
+                    highlightPianoKeys([]);
+                }
+                
+            } catch (e) {
+                resultDiv.textContent = `Error: ${e.message}`;
+                highlightPianoKeys([]);
+            }
+        }
+
+        function setDegreeExample(degree, keyValue) {
+            document.getElementById('degreeInput').value = degree;
+            document.getElementById('degreeKeySelect').value = keyValue;
+            convertDegreeToNotes();
+        }
+
+        function getNoteNameFromMidi(midiNote) {
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const octave = Math.floor(midiNote / 12) - 1;
+            const noteName = noteNames[midiNote % 12];
+            return noteName + octave;
+        }
+
         // Allow Enter key to trigger conversion
         document.getElementById('chordInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -518,6 +623,12 @@
         document.getElementById('notesInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 detectChord();
+            }
+        });
+
+        document.getElementById('degreeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertDegreeToNotes();
             }
         });
     </script>

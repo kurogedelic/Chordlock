@@ -394,9 +394,50 @@
                 </div>
             </div>
 
+            <!-- Key Context Section -->
+            <div class="midi-section">
+                <h3 style="text-align: center; margin-bottom: 16px;">🔑 Key Context</h3>
+                <div class="midi-controls">
+                    <select class="midi-select" id="keySelect" style="min-width: 150px;">
+                        <option value="0,0">C major</option>
+                        <option value="1,0">C# major</option>
+                        <option value="2,0">D major</option>
+                        <option value="3,0">D# major</option>
+                        <option value="4,0">E major</option>
+                        <option value="5,0">F major</option>
+                        <option value="6,0">F# major</option>
+                        <option value="7,0">G major</option>
+                        <option value="8,0">G# major</option>
+                        <option value="9,0">A major</option>
+                        <option value="10,0">A# major</option>
+                        <option value="11,0">B major</option>
+                        <option value="9,1">A minor</option>
+                        <option value="10,1">A# minor</option>
+                        <option value="11,1">B minor</option>
+                        <option value="0,1">C minor</option>
+                        <option value="1,1">C# minor</option>
+                        <option value="2,1">D minor</option>
+                        <option value="3,1">D# minor</option>
+                        <option value="4,1">E minor</option>
+                        <option value="5,1">F minor</option>
+                        <option value="6,1">F# minor</option>
+                        <option value="7,1">G minor</option>
+                        <option value="8,1">G# minor</option>
+                    </select>
+                    <div class="midi-status">
+                        <div class="status-indicator connected"></div>
+                        <span id="keyStatusText">Key context enabled</span>
+                    </div>
+                </div>
+                <div class="midi-info">
+                    Key context provides functional harmony analysis and Roman numeral notation
+                </div>
+            </div>
+
             <div class="chord-display">
                 <div class="chord-name" id="chordName">—</div>
                 <div class="chord-info" id="chordInfo">Play some notes to see chord analysis</div>
+                <div id="romanNumeral" style="font-size: 1.5rem; font-weight: 600; color: var(--accent-color); margin-top: 12px;">—</div>
             </div>
 
             <div class="controls">
@@ -451,11 +492,15 @@
         let activeNotes = new Set();
         let midiAccess = null;
         let selectedMidiInput = null;
+        let currentKey = {tonic: 0, isMinor: false};
 
         // Initialize Chordlock
         ChordlockModule().then(function(Module) {
             chordlock = Module;
             chordlock.ccall('chordlock_init', null, [], []);
+            
+            // Set initial key context
+            chordlock.ccall('chordlock_set_key_context', null, ['number', 'number'], [currentKey.tonic, currentKey.isMinor ? 1 : 0]);
             
             document.getElementById('loading').style.display = 'none';
             document.getElementById('main-interface').style.display = 'block';
@@ -463,10 +508,24 @@
             generatePiano();
             updateChordDisplay();
             initializeMIDI();
+            initializeKeySelector();
         }).catch(function(err) {
             console.error('Failed to load Chordlock:', err);
             document.getElementById('loading').innerHTML = 'Failed to load Chordlock engine';
         });
+
+        function initializeKeySelector() {
+            const keySelect = document.getElementById('keySelect');
+            keySelect.addEventListener('change', function(event) {
+                const [tonic, isMinor] = event.target.value.split(',').map(Number);
+                currentKey = {tonic, isMinor: isMinor === 1};
+                
+                if (chordlock) {
+                    chordlock.ccall('chordlock_set_key_context', null, ['number', 'number'], [tonic, isMinor]);
+                    updateChordDisplay(); // Refresh analysis with new key
+                }
+            });
+        }
 
         function generatePiano() {
             const piano = document.getElementById('piano');
@@ -546,6 +605,23 @@
                     const chordName = data.chord || '—';
                     document.getElementById('chordName').textContent = chordName;
                     
+                    // Get Roman numeral analysis
+                    let romanNumeral = '—';
+                    if (chordName !== '—' && chordName !== 'Error') {
+                        try {
+                            const keyValue = currentKey.tonic + (currentKey.isMinor ? 12 : 0);
+                            const romanResult = chordlock.ccall('chordlock_analyze_current_degree', 'string', ['number'], [keyValue]);
+                            if (romanResult && romanResult.trim()) {
+                                const keyNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                                const keyName = keyNames[currentKey.tonic] + (currentKey.isMinor ? 'm' : '');
+                                romanNumeral = `${romanResult} in ${keyName}`;
+                            }
+                        } catch (e) {
+                            console.log('Roman numeral analysis not available');
+                        }
+                    }
+                    document.getElementById('romanNumeral').textContent = romanNumeral;
+                    
                     // Update chord info
                     let info = '';
                     if (data.confidence) {
@@ -573,6 +649,7 @@
             } else {
                 document.getElementById('chordName').textContent = '—';
                 document.getElementById('chordInfo').textContent = 'Play some notes to see chord analysis';
+                document.getElementById('romanNumeral').textContent = '—';
                 document.getElementById('bestMatch').textContent = '—';
                 document.getElementById('confidence').textContent = '—';
                 updateCandidates([]);

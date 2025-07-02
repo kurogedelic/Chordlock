@@ -226,13 +226,20 @@ float chordlock_calculate_complexity() {
     return g_chordlock->calculateChordComplexity();
 }
 
-// Key context functions
+// Key context functions  
 EMSCRIPTEN_KEEPALIVE
 void chordlock_set_key(int tonic) {
     if (g_chordlock && tonic >= 0 && tonic <= 23) {
         bool isMinor = tonic >= 12;
         int realTonic = tonic % 12;
         g_chordlock->setKeyContext(realTonic, isMinor);
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE
+void chordlock_set_key_context(int tonic, int isMinor) {
+    if (g_chordlock && tonic >= 0 && tonic < 12) {
+        g_chordlock->setKeyContext(tonic, isMinor != 0);
     }
 }
 
@@ -276,6 +283,25 @@ const char* chordlock_degree_to_notes_json(const char* degree, int tonic, int ro
     
     static std::string result;
     result = g_chordlock->degreeToNotesJSON(std::string(degree), realTonic, isMinor, rootOctave);
+    return result.c_str();
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* chordlock_degree_to_notes(const char* degree, int tonic, int isMinor, int rootOctave) {
+    if (!g_chordlock || !degree || tonic < 0 || tonic >= 12) {
+        return "[]";
+    }
+    
+    auto notes = g_chordlock->degreeToNotes(std::string(degree), tonic, isMinor != 0, rootOctave);
+    
+    static std::string result;
+    result = "[";
+    for (size_t i = 0; i < notes.size(); i++) {
+        result += std::to_string(notes[i]);
+        if (i < notes.size() - 1) result += ",";
+    }
+    result += "]";
+    
     return result.c_str();
 }
 

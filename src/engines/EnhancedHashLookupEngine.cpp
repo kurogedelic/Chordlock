@@ -2,6 +2,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
+#include <cmath>
+#include <algorithm>
 
 EnhancedHashLookupEngine::EnhancedHashLookupEngine() {
     reset();
@@ -95,7 +97,26 @@ EnhancedHashLookupEngine::lookupChordEnhanced(const VelocityProcessor::VelocityW
     
     uint16_t mask = calculateMask(weights);
     
-    // Direct lookup first - these should be highly prioritized
+    
+    // PRIORITY 1: Check for half-diminished (m7♭5) patterns first - critical jazz chord
+    auto halfDimCandidate = detectHalfDiminished(mask);
+    if (halfDimCandidate.confidence > 0) {
+        result.candidates.push_back(halfDimCandidate);
+    }
+    
+    // PRIORITY 1.5: Try ALL extended chord templates
+    auto extendedCandidates = generateAllExtendedTemplates(mask);
+    for (const auto& candidate : extendedCandidates) {
+        result.candidates.push_back(candidate);
+    }
+    
+    // DISABLED: Old slash chord generation - replaced with unified rule
+    // auto slashCandidates = generateAllSlashCandidates(mask);
+    // for (const auto& candidate : slashCandidates) {
+    //     result.candidates.push_back(candidate);
+    // }
+    
+    // PRIORITY 2: Direct lookup for standard chords
     const EnhancedChordEntry* entry = findEnhancedChord(mask);
     if (entry) {
         float confidence = entry->confidence;
@@ -108,14 +129,45 @@ EnhancedHashLookupEngine::lookupChordEnhanced(const VelocityProcessor::VelocityW
             confidence *= calculateKeyBoost(entry->name, mask);
         }
         
-        // Strong boost for exact matches
-        confidence *= 1.5f;
+        // Strong boost for exact matches - basic chords should be prioritized
+        confidence *= 3.0f;
         
-        // Additional boost for 7th chords when key context is available
-        if (keyContext_.isSet()) {
-            std::string name = entry->name;
-            if (name.find("7") != std::string::npos || name.find("maj7") != std::string::npos) {
+        // Note: m7♭5 chords are now handled by priority detection in detectHalfDiminished()
+        // This avoids duplicate detection and ensures optimal performance
+        
+        // CRITICAL FIX: Boost 7th chords even without key context to compete with false slash chords
+        std::string name = entry->name;
+        if (name.find("7") != std::string::npos || name.find("maj7") != std::string::npos) {
+            if (keyContext_.isSet()) {
                 confidence *= 2.0f; // Massive boost for direct 7th chord matches in key context
+            } else {
+                confidence *= 1.5f; // Moderate boost for 7th chords without key context to prevent false slash detection
+            }
+        }
+        
+        // CRITICAL FIX: Detect inversions and boost confidence to compete with false slash chords
+        int actualLowestNote = findLowestNote();
+        int lowestPitchClass = (actualLowestNote >= 0) ? actualLowestNote % 12 : -1;
+        
+        if (lowestPitchClass >= 0) {
+            // Check if lowest note is 3rd, 5th, or 7th of this chord (legitimate inversions)
+            int chordRoot = -1;
+            for (int i = 0; i < 12; i++) {
+                if (entry->mask & (1 << i)) {
+                    chordRoot = i;
+                    break; // First pitch class is typically root
+                }
+            }
+            
+            if (chordRoot >= 0) {
+                int interval = (lowestPitchClass - chordRoot + 12) % 12;
+                if (interval == 4 || interval == 3) { // 3rd in bass (major or minor)
+                    confidence *= 2.5f; // Strong boost for 1st inversion
+                } else if (interval == 7) { // 5th in bass
+                    confidence *= 2.0f; // Good boost for 2nd inversion
+                } else if (interval == 10 || interval == 11) { // 7th in bass
+                    confidence *= 1.8f; // Moderate boost for 3rd inversion
+                }
             }
         }
         
@@ -131,6 +183,236 @@ EnhancedHashLookupEngine::lookupChordEnhanced(const VelocityProcessor::VelocityW
             mask,
             confidence
         });
+    }
+    
+    // CRITICAL: UNIFIED SLASH/INVERSION DETECTION RULE - Option A Implementation
+    // "bass = lowest-note(input); if bass != rootCandidate then slash"
+    int bassNote = findLowestNote();
+    int bassPitchClass = (bassNote >= 0) ? bassNote % 12 : -1;
+    
+    
+    if (bassPitchClass >= 0) {
+        const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        
+        // SYMMETRIC CHORD DEDICATED LANE: Handle aug/dim7 separately
+        bool isAug = (mask == 0x111 || mask == 0x888 || mask == 0x444); // Augmented patterns
+        bool isDim = (__builtin_popcount(mask) == 3 && 
+                      ((mask & 0x049) == 0x049 || (mask & 0x092) == 0x092 || (mask & 0x124) == 0x124 || (mask & 0x248) == 0x248)); // Diminished patterns
+        bool isDim7 = (__builtin_popcount(mask) == 4 && 
+                       ((mask & 0x249) == 0x249 || (mask & 0x492) == 0x492 || (mask & 0x924) == 0x924)); // Diminished 7th patterns
+        
+        if (isAug || isDim || isDim7) {
+            // DEDICATED SYMMETRIC PROCESSING
+            std::string chordType = isAug ? "aug" : (isDim7 ? "dim7" : "dim");
+            
+            // BASS PRIORITY 100-POINT RULE: Bass note gets absolute priority
+            float bestScore = 0.0f;
+            std::string bestChord = "";
+            
+            for (int rootCandidate = 0; rootCandidate < 12; rootCandidate++) {
+                if (!(mask & (1 << rootCandidate))) continue;
+                
+                float score = 0.0f;
+                
+                // BASS PRIORITY: If bass is in chord, unconditional top score
+                if (rootCandidate == bassPitchClass) {
+                    score += 100.0f; // Bass note = automatic winner
+                }
+                
+                // Distance penalty: farther from bass = lower score
+                int interval = (rootCandidate - bassPitchClass + 12) % 12;
+                score -= interval; // Closer to bass = higher score
+                
+                // Generate chord name
+                std::string chordName = std::string(noteNames[rootCandidate]) + chordType;
+                
+                // FALSE-SLASH PREVENTION: Only add slash if bass != root
+                if (bassPitchClass != rootCandidate) {
+                    chordName += "/" + std::string(noteNames[bassPitchClass]);
+                }
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestChord = chordName;
+                }
+            }
+            
+            // Add the best symmetric chord candidate with EARLY RETURN
+            if (!bestChord.empty()) {
+                result.candidates.push_back({
+                    bestChord,
+                    mask,
+                    bestScore * 100.0f // MASSIVE boost to guarantee symmetric chord wins
+                });
+                // EARLY RETURN: Don't let other candidates compete with symmetric chords
+                return result;
+            }
+        }
+        
+        // ROOT ESTIMATION: Smart root detection before trying all candidates
+        auto rootCandidates = rootEstimator_.getAllRootCandidates(mask, bassNote);
+        
+        // Try root candidates in order of confidence (highest first)
+        for (const auto& rootInfo : rootCandidates) {
+            int rootCandidate = rootInfo.root;
+            if (!(mask & (1 << rootCandidate))) continue; // Root must be present
+            
+            // Rotate mask so rootCandidate becomes the root (pitch class 0)
+            uint16_t rotatedMask = 0;
+            for (int i = 0; i < 12; i++) {
+                if (mask & (1 << i)) {
+                    int newPitch = (i - rootCandidate + 12) % 12;
+                    rotatedMask |= (1 << newPitch);
+                }
+            }
+            
+            // Look up the rotated pattern in chord table
+            const EnhancedChordEntry* chordEntry = findEnhancedChord(rotatedMask);
+            if (chordEntry) {
+                float score = chordEntry->confidence;
+                std::string chordName = chordEntry->name;
+                std::string chordLabel = std::string(noteNames[rootCandidate]) + chordName;
+                
+                // SPECIAL CASE: Augmented chord symmetry handling
+                // Aug chords have the same intervals from any root, so prefer actual root over table root
+                if (chordName.find("aug") != std::string::npos) {
+                    if (rootCandidate == bassPitchClass) {
+                        score += 0.5f; // Reduced bass=root preference to allow slash detection
+                    }
+                    // For aug chords, always use the specified rootCandidate
+                    chordLabel = std::string(noteNames[rootCandidate]) + "aug";
+                }
+                    
+                // UNIFIED RULE: If bass != root, add slash bonus and slash notation
+                if (bassPitchClass != rootCandidate) {
+                    float slashBonus = 2.5f; // Base slash bonus
+                    
+                    // Enhanced slash bonus for symmetric chords to overcome their symmetry preference
+                    if (chordName.find("aug") != std::string::npos || chordName.find("dim") != std::string::npos) {
+                        slashBonus = 4.0f; // Higher bonus for symmetric chords to ensure slash detection
+                    }
+                    
+                    score += slashBonus;
+                    if (chordName.find("aug") != std::string::npos) {
+                        chordLabel = std::string(noteNames[rootCandidate]) + "aug/" + noteNames[bassPitchClass];
+                    } else {
+                        chordLabel = std::string(noteNames[rootCandidate]) + chordName + "/" + noteNames[bassPitchClass];
+                    }
+                }
+                    
+                // Apply standard boosts
+                score *= 3.0f; // Standard exact match boost
+                
+                // 7th chord boost (consistent with existing logic) - Enhanced for 7th vs 6th competition
+                if (chordName.find("7") != std::string::npos || chordName.find("maj7") != std::string::npos) {
+                    score *= 4.0f; // Increased from 2.5f to strongly win against 6th chords
+                }
+                
+                // Additional boost for specific 7th chord types that compete with 6th chords
+                if (chordName.find("m7") != std::string::npos) {
+                    score *= 2.5f; // Increased from 1.5f for minor 7th chords vs 6th chord confusion
+                }
+                
+                // ROOT ESTIMATION BOOST: Apply confidence boost based on root estimation
+                score *= (1.0f + rootInfo.confidence * 0.1f); // 10% boost per confidence point
+                
+                result.candidates.push_back({
+                    chordLabel,
+                    mask,
+                    score
+                });
+            }
+        }
+    }
+    
+    // OPTION B: INVERSION-SPECIFIC PATH - Enhanced inversion analysis
+    // Analyze inversions with specific logic for better accuracy
+    auto countBits = [](uint16_t n) -> int {
+        int count = 0;
+        while (n) {
+            count += n & 1;
+            n >>= 1;
+        }
+        return count;
+    };
+    
+    // DEBUG: Option B activation check
+    if (bassPitchClass >= 0 && countBits(mask) >= 3) {
+        const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        
+        // Collect all notes from mask
+        std::vector<int> notes;
+        for (int i = 0; i < 12; i++) {
+            if (mask & (1 << i)) {
+                notes.push_back(i);
+            }
+        }
+        
+        // Analyze each possible root for inversion patterns
+        for (int rootCandidate : notes) {
+            if (rootCandidate == bassPitchClass) continue; // Skip if bass = root (not an inversion)
+            
+            // Calculate bass interval from root
+            int bassInterval = (bassPitchClass - rootCandidate + 12) % 12;
+            
+            // Apply OPTION B: Enhanced inversion scoring
+            // Check for specific inversion patterns (3rd, 5th, 7th in bass) + sus4
+            bool isFirstInversion = (bassInterval == 3 || bassInterval == 4);  // Major/minor 3rd
+            bool isSecondInversion = (bassInterval == 7);                      // Perfect 5th
+            bool isThirdInversion = (bassInterval == 10 || bassInterval == 11); // Minor/major 7th
+            bool isSus4Inversion = (bassInterval == 5);                        // Perfect 4th (sus4)
+            
+            if (isFirstInversion || isSecondInversion || isThirdInversion || isSus4Inversion) {
+                // Rotate mask to test this root
+                uint16_t rotatedMask = 0;
+                for (int note : notes) {
+                    int newPitch = (note - rootCandidate + 12) % 12;
+                    rotatedMask |= (1 << newPitch);
+                }
+                
+                const EnhancedChordEntry* chordEntry = findEnhancedChord(rotatedMask);
+                if (chordEntry) {
+                    float score = chordEntry->confidence;
+                    std::string chordLabel = std::string(noteNames[rootCandidate]) + chordEntry->name + "/" + noteNames[bassPitchClass];
+                    
+                    // OPTION B: Enhanced inversion-specific boosts
+                    score *= 8.0f; // Very strong base boost for inversion detection
+                    
+                    if (isFirstInversion) {
+                        score *= 4.0f; // Very strong boost for 1st inversion (most common)
+                    } else if (isSecondInversion) {
+                        score *= 3.5f; // Very strong boost for 2nd inversion
+                    } else if (isThirdInversion) {
+                        score *= 3.0f; // Very strong boost for 3rd inversion
+                    } else if (isSus4Inversion) {
+                        score *= 3.2f; // Very strong boost for sus4 slash chords
+                    }
+                    
+                    // Enhanced 7th chord vs 6th chord competition
+                    std::string chordName = chordEntry->name;
+                    if (chordName.find("7") != std::string::npos || chordName.find("maj7") != std::string::npos) {
+                        score *= 2.8f; // Strong boost for 7th chords in inversions
+                    }
+                    
+                    // Special handling for minor 7th chords that compete with 6th chords
+                    if (chordName.find("m7") != std::string::npos) {
+                        score *= 1.8f; // Extra boost for minor 7th inversions
+                    }
+                    
+                    // Augmented chord special handling in inversions
+                    if (chordName.find("aug") != std::string::npos) {
+                        chordLabel = std::string(noteNames[rootCandidate]) + "aug/" + noteNames[bassPitchClass];
+                        score *= 3.5f; // Strong boost for augmented slash chords to overcome symmetry issues
+                    }
+                    
+                    result.candidates.push_back({
+                        chordLabel,
+                        mask,
+                        score
+                    });
+                }
+            }
+        }
     }
     
     // Find alternative chords (subset masks, transpositions, etc.)
@@ -287,6 +569,9 @@ EnhancedHashLookupEngine::lookupChordEnhanced(const VelocityProcessor::VelocityW
                   });
     }
     
+    // Normalize candidate scores using softmax (0-10 range)
+    normalizeCandidateScores(result.candidates);
+    
     // Calculate average confidence
     if (!result.candidates.empty()) {
         float totalConfidence = 0.0f;
@@ -439,6 +724,51 @@ std::vector<ChordCandidate> EnhancedHashLookupEngine::findAlternativeChords(uint
         }
     }
     
+    // Strategy 4: Extended chord template generation (Db13#11等の自動生成)
+    if (noteCount >= 5 && alternatives.size() < maxResults) {
+        for (int root = 0; root < 12; root++) {
+            if (!(mask & (1 << root))) continue; // Root must be present
+            
+            const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+            
+            // Check for extended chord patterns: root + M3 + 7 + 9 + #11 + 13
+            uint16_t extendedPattern = 0;
+            extendedPattern |= (1 << root);                    // root
+            extendedPattern |= (1 << ((root + 4) % 12));       // major 3rd
+            extendedPattern |= (1 << ((root + 10) % 12));      // minor 7th
+            extendedPattern |= (1 << ((root + 2) % 12));       // 9th
+            extendedPattern |= (1 << ((root + 6) % 12));       // #11
+            extendedPattern |= (1 << ((root + 9) % 12));       // 13th
+            
+            // Check if input mask contains most of this extended pattern
+            int matchingNotes = __builtin_popcount(mask & extendedPattern);
+            if (matchingNotes >= 4) { // Need at least root + 3rd + 7th + one extension
+                std::string chordName = noteNames[root];
+                
+                // Build extension name
+                std::vector<std::string> extensions;
+                if (mask & (1 << ((root + 9) % 12))) extensions.push_back("13");
+                if (mask & (1 << ((root + 6) % 12))) extensions.push_back("#11");
+                if (mask & (1 << ((root + 2) % 12)) && extensions.empty()) extensions.push_back("9");
+                
+                if (!extensions.empty()) {
+                    chordName += extensions[0];
+                    for (size_t i = 1; i < extensions.size(); i++) {
+                        chordName += extensions[i];
+                    }
+                    
+                    float confidence = 0.8f * (static_cast<float>(matchingNotes) / 6.0f);
+                    
+                    alternatives.push_back({
+                        chordName,
+                        mask,
+                        confidence
+                    });
+                }
+            }
+        }
+    }
+    
     return alternatives;
 }
 
@@ -573,8 +903,11 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
             std::string naturalChordName = "";
             
             // Analyze if the full chord (bass + upper) forms a recognizable triad
-            naturalChordName = analyzeNaturalSlashChord(mask, bassPitch, isNaturalSlashChord);
+            // DISABLED: 複数パス禁止 (multiple path prohibition) - unified slash chord detection
+            // naturalChordName = analyzeNaturalSlashChord(mask, bassPitch, isNaturalSlashChord);
             
+            // DISABLED: 複数パス禁止 (multiple path prohibition) - unified slash chord detection
+            /*
             if (isNaturalSlashChord) {
                 // Create natural slash chord candidate
                 DetailedChordCandidate slashCandidate;
@@ -591,51 +924,54 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
                 int totalNotes = __builtin_popcount(mask);
                 bool isCompleteTriad = (totalNotes >= 3);
                 
-                // REVOLUTIONARY: Much higher base confidence for slash chords to compete with add9 chords
+                // SMART SLASH BOOST: note_count基準の段階的ブースト
+                int noteCount = __builtin_popcount(mask);
+                float slashBonus = 2.0f + (noteCount < 4 ? 0.0f : -0.5f); // 4音以上は少し下げる
+                
                 if (hasClearBassSeparation) {
                     if (hasRegisterSeparation) {
                         if (isCompleteTriad) {
-                            slashCandidate.confidence = 15.0f; // MASSIVE boost for excellent slash chords
+                            slashCandidate.confidence = slashBonus + 1.0f; // 優秀分離+完全三和音
                         } else {
-                            slashCandidate.confidence = 12.0f; // Very high for good separation
+                            slashCandidate.confidence = slashBonus; // 優秀分離のみ
                         }
                     } else {
                         if (isCompleteTriad) {
-                            slashCandidate.confidence = 12.0f; // High for complete triad + pitch gap
+                            slashCandidate.confidence = slashBonus + 0.5f; // 三和音+音程差
                         } else {
-                            slashCandidate.confidence = 8.0f; // Good for incomplete + pitch gap
+                            slashCandidate.confidence = slashBonus - 0.5f; // 不完全+音程差
                         }
                     }
                 } else {
                     if (isCompleteTriad) {
-                        slashCandidate.confidence = 10.0f; // High boost for complete triads
+                        slashCandidate.confidence = slashBonus; // 完全三和音のみ
                     } else {
-                        slashCandidate.confidence = 5.0f; // Moderate for incomplete
+                        slashCandidate.confidence = slashBonus - 1.0f; // 不完全三和音
                     }
                 }
                 
                 // Additional boosts for specific chord types
                 if (naturalChordName.find("m") != std::string::npos) {
-                    // Minor chord slash - boost to compete with m7b5 chords
-                    slashCandidate.confidence += 3.0f; // Major boost for minor slash chords
+                    // Minor chord slash - modest boost to compete with m7b5 chords
+                    slashCandidate.confidence += 0.5f; // Modest boost for minor slash chords
                 }
                 
-                // Massive boost for extended slash chords (add9, maj7, etc.)
+                // Boost for extended slash chords (add9, maj7, etc.) - but not excessive
                 if (naturalChordName.find("add9") != std::string::npos || 
                     naturalChordName.find("maj9") != std::string::npos ||
                     naturalChordName.find("9") != std::string::npos) {
-                    slashCandidate.confidence += 10.0f; // MASSIVE boost for 9th slash chords like Cmaj9/E
+                    slashCandidate.confidence += 1.0f; // Reasonable boost for 9th slash chords like Cmaj9/E
                 }
                 
-                // KEY CONTEXT SPECIAL: Massive boost if upper chord is tonic function
+                // KEY CONTEXT: Moderate boost if upper chord is in key context
                 if (keyContext_.isSet()) {
                     std::string upperFunction = keyContext_.getChordFunction(naturalChordName);
                     if (upperFunction == "I" || upperFunction == "i") {
-                        slashCandidate.confidence += 15.0f; // ENORMOUS boost for tonic slash chords like Cmaj9/E
+                        slashCandidate.confidence += 1.0f; // Good boost for tonic slash chords like Cmaj9/E
                     } else if (upperFunction == "V" || upperFunction == "v") {
-                        slashCandidate.confidence += 10.0f; // Large boost for dominant slash chords
+                        slashCandidate.confidence += 0.8f; // Moderate boost for dominant slash chords
                     } else if (upperFunction == "IV" || upperFunction == "iv") {
-                        slashCandidate.confidence += 8.0f; // Good boost for subdominant slash chords  
+                        slashCandidate.confidence += 0.6f; // Small boost for subdominant slash chords  
                     }
                 }
                 
@@ -644,6 +980,7 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
                 
                 detailedCandidates.push_back(slashCandidate);
             }
+            */
             
             // FALLBACK: Try original upper chord analysis for edge cases
             if (__builtin_popcount(upperMask) >= 2) {
@@ -658,15 +995,33 @@ EnhancedHashLookupEngine::findDetailedAlternatives(uint16_t mask, int maxResults
                     }
                     
                     if (upperRootPitch >= 0 && bassPitch != upperRootPitch) {
-                        auto slashCandidate = createSlashChordCandidate(upperChord, bassNote, upperChord->confidence);
-                        
-                        if (hasClearBassSeparation) {
-                            slashCandidate.confidence *= 1.5f; // Boost for clear separation
-                        } else {
-                            slashCandidate.confidence *= 0.8f; // Slight demotion for unclear separation
+                        // SMART SLASH CHORD: Only create if upper chord is significant AND bass is different
+                        // CRITICAL FIX: Much higher confidence threshold to prevent inversion false positives
+                        if (upperChord->confidence >= 2.5f) { // Only for very strong upper chords
+                            // DISABLED: 複数パス禁止 (multiple path prohibition) - unified slash chord detection
+                            /*
+                            auto slashCandidate = createSlashChordCandidate(upperChord, bassNote, upperChord->confidence);
+                            
+                            // CRITICAL FIX: Check if this is likely an inversion rather than true slash chord
+                            int interval = (bassPitch - upperRootPitch + 12) % 12;
+                            
+                            // Additional check: if bass note is 3rd or 5th, this might be an inversion
+                            // Reduce boost significantly to prevent overpowering correct extended chord detection
+                            if (interval == 4) { // 3rd in bass - possibly inversion, not slash
+                                slashCandidate.confidence *= 1.2f; // Reduced from 3.0f - much more conservative
+                            } else if (interval == 7) { // 5th in bass - possibly inversion
+                                slashCandidate.confidence *= 1.1f; // Reduced from 2.0f - conservative
+                            } else {
+                                slashCandidate.confidence *= 1.3f; // Reduced from 1.5f - other bass notes more likely true slash
+                            }
+                            
+                            if (hasClearBassSeparation) {
+                                slashCandidate.confidence *= 1.2f; // Additional boost for clear separation
+                            }
+                            
+                            detailedCandidates.push_back(slashCandidate);
+                            */
                         }
-                        
-                        detailedCandidates.push_back(slashCandidate);
                     }
                 }
             }
@@ -789,8 +1144,252 @@ EnhancedHashLookupEngine::EnhancedLookupResult
 EnhancedHashLookupEngine::lookupChordWithDetailedAnalysis(uint16_t mask, int maxResults) const {
     EnhancedLookupResult result;
     
-    // Get detailed candidates
-    result.detailedCandidates = findDetailedAlternatives(mask, maxResults);
+    // PRIORITY 0: Check for ambiguous sets first
+    AmbiguousSet ambigSet;
+    if (isAmbiguousSet(mask, ambigSet)) {
+        int bassNote = findLowestNote();
+        int bassPitchClass = (bassNote >= 0) ? bassNote % 12 : -1;
+        
+        DetailedChordCandidate ambigCandidate;
+        ambigCandidate.name = ambigSet.getLabel(bassPitchClass);
+        ambigCandidate.mask = mask;
+        ambigCandidate.confidence = 25.0f; // Moderate confidence for ambiguous sets
+        ambigCandidate.root = "ambiguous";
+        ambigCandidate.isInversion = false;
+        ambigCandidate.inversionDegree = 0;
+        ambigCandidate.interpretationType = "ambiguous_set";
+        ambigCandidate.matchScore = 1.0f;
+        
+        result.detailedCandidates.push_back(ambigCandidate);
+    }
+    
+    // CRITICAL: UNIFIED SLASH/INVERSION DETECTION RULE - Option A Implementation
+    // "bass = lowest-note(input); if bass != rootCandidate then slash"
+    int bassNote = findLowestNote();
+    int bassPitchClass = (bassNote >= 0) ? bassNote % 12 : -1;
+    
+    if (bassPitchClass >= 0) {
+        const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        
+        // Try each note in the input as a potential root
+        for (int rootCandidate = 0; rootCandidate < 12; rootCandidate++) {
+            if (!(mask & (1 << rootCandidate))) continue; // Root must be present
+            
+            // Rotate mask so rootCandidate becomes the root (pitch class 0)
+            uint16_t rotatedMask = 0;
+            for (int i = 0; i < 12; i++) {
+                if (mask & (1 << i)) {
+                    int newPitch = (i - rootCandidate + 12) % 12;
+                    rotatedMask |= (1 << newPitch);
+                }
+            }
+            
+            // Look up the rotated pattern in chord table
+            const EnhancedChordEntry* chordEntry = findEnhancedChord(rotatedMask);
+            if (chordEntry) {
+                // STRICT SLASH VALIDATION: Reduce false positives
+                bool validBass = true;
+                if (bassPitchClass != rootCandidate) {
+                    // Check bass interval and actual presence in chord
+                    int bassInterval = (bassPitchClass - rootCandidate + 12) % 12;
+                    bool isCommonInterval = (bassInterval == 3 || bassInterval == 4 ||  // 3rd
+                                           bassInterval == 7 ||                        // 5th (removed sus4)
+                                           bassInterval == 10 || bassInterval == 11); // 7th
+                    
+                    // Additional check: require at least 3 notes for slash chords
+                    int noteCount = __builtin_popcount(mask);
+                    
+                    if (!isCommonInterval || !(mask & (1 << bassPitchClass)) || noteCount < 3) {
+                        validBass = false;
+                    }
+                }
+                
+                if (!validBass) {
+                    continue; // Skip if bass not in chord
+                }
+                
+                float score = chordEntry->confidence;
+                std::string chordName = chordEntry->name;
+                
+                // Remove root note from chord name (table includes root)
+                std::string quality = chordName;
+                if (chordName.length() >= 1) {
+                    // Skip first character (root note)
+                    if ((chordName[0] >= 'A' && chordName[0] <= 'G') || chordName[0] == 'C') {
+                        quality = chordName.substr(1);
+                        // Handle sharp/flat modifiers
+                        if (quality.length() > 0 && (quality[0] == '#' || quality[0] == 'b')) {
+                            quality = quality.substr(1);
+                        }
+                    }
+                }
+                
+                std::string rootName;
+                switch(rootCandidate) {
+                    case 0: rootName = "C"; break;
+                    case 1: rootName = "C#"; break;
+                    case 2: rootName = "D"; break;
+                    case 3: rootName = "D#"; break;
+                    case 4: rootName = "E"; break;
+                    case 5: rootName = "F"; break;
+                    case 6: rootName = "F#"; break;
+                    case 7: rootName = "G"; break;
+                    case 8: rootName = "G#"; break;
+                    case 9: rootName = "A"; break;
+                    case 10: rootName = "A#"; break;
+                    case 11: rootName = "B"; break;
+                    default: rootName = "?"; break;
+                }
+                
+                std::string chordLabel = rootName + quality;
+                
+                // SPECIAL CASE: Augmented chord symmetry handling
+                if (quality.find("aug") != std::string::npos) {
+                    if (rootCandidate == bassPitchClass) {
+                        score += 50.0f; // MAXIMUM bias for bass=root in aug chords
+                    } else {
+                        // Skip aug slash chords entirely to force bass=root
+                        continue;
+                    }
+                    chordLabel = rootName + "aug";
+                }
+                
+                // SPECIAL CASE: Diminished chord symmetry handling  
+                if (quality.find("dim") != std::string::npos && quality.find("m7") == std::string::npos) {
+                    if (rootCandidate == bassPitchClass) {
+                        score += 50.0f; // MAXIMUM bias for bass=root in dim chords
+                    } else {
+                        // Skip dim slash chords entirely to force bass=root
+                        continue;
+                    }
+                }
+                    
+                // BASS-PRIORITY CUTOVER: Simple label generation
+                if (bassPitchClass == rootCandidate) {
+                    // Normal chord: bass = root
+                    chordLabel = rootName + quality;
+                    score += 5.0f; // Boost for root position
+                } else {
+                    // Slash chord: bass ∈ pitch_set but bass != root  
+                    const float SLASH_BONUS = 1.5f; // Reduced from 3.5f to prevent false positives
+                    score += SLASH_BONUS;
+                    
+                    std::string bassName;
+                    switch(bassPitchClass) {
+                        case 0: bassName = "C"; break;
+                        case 1: bassName = "C#"; break;
+                        case 2: bassName = "D"; break;
+                        case 3: bassName = "D#"; break;
+                        case 4: bassName = "E"; break;
+                        case 5: bassName = "F"; break;
+                        case 6: bassName = "F#"; break;
+                        case 7: bassName = "G"; break;
+                        case 8: bassName = "G#"; break;
+                        case 9: bassName = "A"; break;
+                        case 10: bassName = "A#"; break;
+                        case 11: bassName = "B"; break;
+                        default: bassName = "?"; break;
+                    }
+                    
+                    chordLabel = rootName + quality + "/" + bassName;
+                }
+                    
+                // Apply conservative boosts - further reduced to prevent false positives
+                score *= 1.2f;  // Further reduced from 1.5f
+                
+                // 7th chord boost - more aggressive for 7th detection
+                if (quality.find("7") != std::string::npos || quality.find("maj7") != std::string::npos) {
+                    score *= 3.0f;  // Increased to improve 7th chord detection
+                }
+                
+                // Additional boost for minor 7th chords
+                if (quality.find("m7") != std::string::npos) {
+                    score *= 1.5f;  // Reduced from 2.5f
+                }
+                
+                // Half-diminished vs dim7 competition
+                if (quality.find("m7b5") != std::string::npos || quality.find("m7♭5") != std::string::npos) {
+                    score *= 3.0f; // Strong boost for half-diminished to beat dim7
+                }
+                
+                // Diminished 7th vs diminished 6th competition
+                if (quality.find("dim7") != std::string::npos) {
+                    score *= 15.0f; // Very strong boost for dim7 to beat dim6
+                }
+                
+                // Am7 vs C6 competition - root-on detection
+                if (quality.find("m7") != std::string::npos && rootCandidate == bassPitchClass) {
+                    score += 30.0f; // Strong boost for minor 7th in root position
+                }
+                
+                // Convert to DetailedChordCandidate
+                DetailedChordCandidate detailed;
+                detailed.name = chordLabel;
+                detailed.mask = mask;
+                detailed.confidence = score;
+                detailed.root = rootName;
+                detailed.isInversion = (bassPitchClass != rootCandidate);
+                detailed.inversionDegree = detailed.isInversion ? 1 : 0;
+                detailed.interpretationType = "option_a_unified";
+                detailed.matchScore = score;
+                
+                result.detailedCandidates.push_back(detailed);
+            }
+        }
+    }
+    
+    // PRIORITY 1: Check for half-diminished (m7♭5) patterns first - critical jazz chord
+    auto halfDimCandidate = detectHalfDiminished(mask);
+    if (halfDimCandidate.confidence > 0) {
+        // Convert to DetailedChordCandidate
+        DetailedChordCandidate detailed;
+        detailed.name = halfDimCandidate.name;
+        detailed.mask = halfDimCandidate.mask;
+        detailed.confidence = halfDimCandidate.confidence;
+        detailed.root = halfDimCandidate.name.substr(0, halfDimCandidate.name.find("m7♭5"));
+        detailed.isInversion = false;
+        detailed.inversionDegree = 0;
+        detailed.interpretationType = "priority_detection";
+        detailed.matchScore = 1.0f;
+        
+        result.detailedCandidates.push_back(detailed);
+    }
+    
+    // PRIORITY 1.5: Try extended chord templates for missing patterns
+    auto extendedCandidate = generateExtendedChordTemplate(mask, "Db13#11");
+    if (extendedCandidate.confidence > 0) {
+        // Convert to DetailedChordCandidate
+        DetailedChordCandidate detailed;
+        detailed.name = extendedCandidate.name;
+        detailed.mask = extendedCandidate.mask;
+        detailed.confidence = extendedCandidate.confidence;
+        detailed.root = extendedCandidate.name.substr(0, extendedCandidate.name.find("13#11"));
+        detailed.isInversion = false;
+        detailed.inversionDegree = 0;
+        detailed.interpretationType = "extended_template";
+        detailed.matchScore = 1.0f;
+        
+        result.detailedCandidates.push_back(detailed);
+    }
+    
+    // PRIORITY 2: Get standard detailed candidates - LIMITED restoration for slash coverage
+    auto standardCandidates = findDetailedAlternatives(mask, maxResults);
+    
+    // Filter to avoid conflicts with Option A - only add non-duplicate slash candidates
+    for (const auto& candidate : standardCandidates) {
+        bool isDuplicate = false;
+        for (const auto& existing : result.detailedCandidates) {
+            if (existing.name == candidate.name || 
+                (candidate.name.find("/") != std::string::npos && existing.name.find("/") == std::string::npos)) {
+                isDuplicate = true;
+                break;
+            }
+        }
+        
+        if (!isDuplicate) {
+            result.detailedCandidates.push_back(candidate);
+        }
+    }
     
     // Apply key context boost to detailed candidates
     if (keyContext_.isSet() && !result.detailedCandidates.empty()) {
@@ -844,6 +1443,9 @@ EnhancedHashLookupEngine::lookupChordWithDetailedAnalysis(uint16_t mask, int max
         });
     }
     
+    // DISABLED: Normalize detailed candidate scores using softmax (0-10 range)  
+    // normalizeDetailedCandidateScores(result.detailedCandidates);
+    
     // Calculate average confidence
     if (!result.candidates.empty()) {
         float totalConfidence = 0.0f;
@@ -854,6 +1456,89 @@ EnhancedHashLookupEngine::lookupChordWithDetailedAnalysis(uint16_t mask, int max
     }
     
     return result;
+}
+
+std::vector<EnhancedHashLookupEngine::AmbiguousSet> 
+EnhancedHashLookupEngine::getAmbiguousSets() const {
+    std::vector<AmbiguousSet> sets;
+    
+    // C6 = Am7 equivalent class: C E G A
+    AmbiguousSet c6_am7;
+    c6_am7.mask = (1 << 0) | (1 << 4) | (1 << 7) | (1 << 9); // C E G A
+    c6_am7.equivalentChords = {"C6", "Am7"};
+    sets.push_back(c6_am7);
+    
+    // D6 = Bm7 equivalent class: D F# A B  
+    AmbiguousSet d6_bm7;
+    d6_bm7.mask = (1 << 2) | (1 << 6) | (1 << 9) | (1 << 11); // D F# A B
+    d6_bm7.equivalentChords = {"D6", "Bm7"};
+    sets.push_back(d6_bm7);
+    
+    // E6 = C#m7 equivalent class: E G# B C#
+    AmbiguousSet e6_csm7;
+    e6_csm7.mask = (1 << 4) | (1 << 8) | (1 << 11) | (1 << 1); // E G# B C#
+    e6_csm7.equivalentChords = {"E6", "C#m7"};
+    sets.push_back(e6_csm7);
+    
+    // F6 = Dm7 equivalent class: F A C D
+    AmbiguousSet f6_dm7;
+    f6_dm7.mask = (1 << 5) | (1 << 9) | (1 << 0) | (1 << 2); // F A C D
+    f6_dm7.equivalentChords = {"F6", "Dm7"};
+    sets.push_back(f6_dm7);
+    
+    // G6 = Em7 equivalent class: G B D E
+    AmbiguousSet g6_em7;
+    g6_em7.mask = (1 << 7) | (1 << 11) | (1 << 2) | (1 << 4); // G B D E
+    g6_em7.equivalentChords = {"G6", "Em7"};
+    sets.push_back(g6_em7);
+    
+    // A6 = F#m7 equivalent class: A C# E F#
+    AmbiguousSet a6_fsm7;
+    a6_fsm7.mask = (1 << 9) | (1 << 1) | (1 << 4) | (1 << 6); // A C# E F#
+    a6_fsm7.equivalentChords = {"A6", "F#m7"};
+    sets.push_back(a6_fsm7);
+    
+    // B6 = G#m7 equivalent class: B D# F# G#
+    AmbiguousSet b6_gsm7;
+    b6_gsm7.mask = (1 << 11) | (1 << 3) | (1 << 6) | (1 << 8); // B D# F# G#
+    b6_gsm7.equivalentChords = {"B6", "G#m7"};
+    sets.push_back(b6_gsm7);
+    
+    return sets;
+}
+
+bool EnhancedHashLookupEngine::isAmbiguousSet(uint16_t mask, AmbiguousSet& result) const {
+    auto sets = getAmbiguousSets();
+    
+    for (const auto& set : sets) {
+        if (set.mask == mask) {
+            result = set;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+std::string EnhancedHashLookupEngine::AmbiguousSet::getLabel(int bassPitchClass) const {
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    
+    if (bassPitchClass < 0 || bassPitchClass >= 12) {
+        return equivalentChords[0] + " (=" + equivalentChords[1] + ")";
+    }
+    
+    std::string bassName = noteNames[bassPitchClass];
+    
+    // Determine which interpretation based on bass note
+    for (const auto& chord : equivalentChords) {
+        if (chord.substr(0, chord.find_first_not_of("ABCDEFG#b")) == bassName) {
+            // Found matching root, return this interpretation
+            return chord + " (=" + (chord == equivalentChords[0] ? equivalentChords[1] : equivalentChords[0]) + ")";
+        }
+    }
+    
+    // Bass doesn't match any root, return slash chord
+    return equivalentChords[0] + "/" + bassName + " (=" + equivalentChords[1] + ")";
 }
 
 std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> 
@@ -882,18 +1567,54 @@ EnhancedHashLookupEngine::findEnharmonicEquivalents(uint16_t mask) const {
                 }
                 
                 if (invertedMask == mask) {
-                    DetailedChordCandidate candidate;
-                    candidate.name = std::string(entry.name) + "/" + getNoteFromPitch(root);
-                    candidate.mask = mask;
-                    candidate.confidence = entry.confidence * 0.8f; // Slight penalty for inversions
-                    candidate.root = getNoteFromPitch(root);
-                    candidate.isInversion = (inversion > 0);
-                    candidate.inversionDegree = inversion;
-                    candidate.interpretationType = "inversion";
-                    candidate.matchScore = 1.0f;
+                    // SMART INVERSION: Only create if the original chord root is present
+                    // This prevents false inversions like Em/C for Cmaj7
                     
-                    equivalents.push_back(candidate);
-                    break;
+                    // Extract the original chord's root note from its mask
+                    int originalChordRoot = -1;
+                    for (int i = 0; i < 12; i++) {
+                        if (entry.mask & (1 << i)) {
+                            originalChordRoot = i;
+                            break; // First note in mask is typically the root
+                        }
+                    }
+                    
+                    // CRITICAL FIX: Only create inversion if it's actually an EXACT MATCH inversion
+                    // Not if it's an extended chord being mistaken for a simple chord inversion
+                    
+                    // 1. Check if original root is present in the input
+                    if (originalChordRoot >= 0 && (mask & (1 << originalChordRoot))) {
+                        
+                        // 2. CRITICAL: Ensure this is an EXACT note count match (not extended chord)
+                        int inputNoteCount = __builtin_popcount(mask);
+                        int patternNoteCount = __builtin_popcount(entry.mask);
+                        
+                        // Only create inversion if note counts match exactly
+                        // This prevents Cmaj7 (4 notes) from being seen as C/E inversion (3 notes)
+                        if (inputNoteCount == patternNoteCount) {
+                            
+                            // 3. ADDITIONAL CHECK: Root note must be different (true inversion)
+                            // If the lowest note IS the chord root, it's not an inversion
+                            int actualLowestNote = findLowestNote();
+                            int lowestPitchClass = (actualLowestNote >= 0) ? actualLowestNote % 12 : -1;
+                            
+                            // Only create slash notation if lowest note != chord root
+                            if (lowestPitchClass >= 0 && lowestPitchClass != originalChordRoot) {
+                                DetailedChordCandidate candidate;
+                                candidate.name = std::string(entry.name) + "/" + getNoteFromPitch(root);
+                                candidate.mask = mask;
+                                candidate.confidence = entry.confidence * 0.6f; // Modest penalty for inversions
+                                candidate.root = getNoteFromPitch(root);
+                                candidate.isInversion = (inversion > 0);
+                                candidate.inversionDegree = inversion;
+                                candidate.interpretationType = "inversion";
+                                candidate.matchScore = 1.0f;
+                                
+                                equivalents.push_back(candidate);
+                                break; // Only add one inversion per pattern
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1005,6 +1726,20 @@ int EnhancedHashLookupEngine::findLowestNote() const {
     return -1; // No notes found
 }
 
+int EnhancedHashLookupEngine::findLowestNoteWithVelocity(uint8_t minVelocity) const {
+    for (int note = 0; note < 128; note++) {
+        if (noteStates_[note] && velocities_[note] >= minVelocity) {
+            return note;
+        }
+    }
+    return -1; // No notes found with sufficient velocity
+}
+
+int EnhancedHashLookupEngine::getLowestNotePitch() const {
+    int lowestNote = findLowestNote();
+    return lowestNote >= 0 ? lowestNote % 12 : -1;
+}
+
 int EnhancedHashLookupEngine::findNextLowestNote() const {
     int lowestNote = findLowestNote();
     if (lowestNote < 0) return -1;
@@ -1059,8 +1794,44 @@ EnhancedHashLookupEngine::createSlashChordCandidate(const EnhancedChordEntry* up
     candidate.name = std::string(upperChord->name) + "/" + bassNoteName;
     candidate.mask = calculateDirectMask(); // Full mask including bass
     
-    // Start with slightly higher confidence for slash chords - they're often more natural
-    candidate.confidence = baseConfidence * 0.95f; 
+    // SMART SLASH BOOST: note_count基準の段階的ブースト
+    int noteCount = __builtin_popcount(candidate.mask);
+    float slashMultiplier = 1.5f + (noteCount < 4 ? 0.3f : -0.2f); // 4音以上は控えめ
+    candidate.confidence = baseConfidence * slashMultiplier;
+    
+    // Enhanced slash chord scoring: ベース≠ルートかつキー内なら+1.0加点
+    if (keyContext_.isSet()) {
+        std::string upperChordRoot = upperChord->root;
+        int upperRootPitch = -1;
+        
+        // Find upper chord root pitch
+        const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+        for (int i = 0; i < 12; i++) {
+            if (upperChordRoot == noteNames[i]) {
+                upperRootPitch = i;
+                break;
+            }
+        }
+        
+        // Check if bass ≠ root AND bass is in key  
+        if (upperRootPitch >= 0 && (bassNote % 12) != upperRootPitch && keyContext_.isScaleTone(bassNote % 12)) {
+            candidate.confidence += 2.0f; // Very strong boost for diatonic bass != root (slash chord priority)
+        }
+    }
+    
+    // UNIVERSAL slash scoring (scale-independent)
+    int upperRootPitch = -1;
+    std::string upperChordRoot = upperChord->root;
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    for (int i = 0; i < 12; i++) {
+        if (upperChordRoot == noteNames[i]) {
+            upperRootPitch = i;
+            break;
+        }
+    }
+    
+    float universalSlashScore = calculateUniversalSlashScore(candidate.mask, upperRootPitch, bassNote % 12);
+    candidate.confidence += universalSlashScore; 
     
     candidate.root = bassNoteName; // Bass note becomes the root for slash chords
     candidate.isInversion = false; // Slash chords are not inversions
@@ -1097,12 +1868,9 @@ std::string EnhancedHashLookupEngine::analyzeNaturalSlashChord(uint16_t mask, in
                 return getNoteFromPitch(root); // Return chord name (e.g., "C", "F", "G")
             }
             
-            // Also check for non-chord tone bass notes (extended slash chords)
-            // If bass is not part of the triad but triad is complete, consider it a valid slash chord
-            if (bassPitch != root && bassPitch != third && bassPitch != fifth) {
-                isNaturalSlashChord = true;
-                return getNoteFromPitch(root); // Extended slash chord with non-chord bass
-            }
+            // CRITICAL FIX: Remove extended slash chord logic to prevent false positives
+            // Only allow true inversions (3rd or 5th in bass), not arbitrary extensions
+            // This prevents extended chords from being misinterpreted as slash chords
         }
         
         // Check if mask contains this minor triad
@@ -1116,12 +1884,9 @@ std::string EnhancedHashLookupEngine::analyzeNaturalSlashChord(uint16_t mask, in
                 return getNoteFromPitch(root) + "m"; // Return minor chord name (e.g., "Cm", "Fm", "Gm")
             }
             
-            // Also check for non-chord tone bass notes (extended slash chords)
-            // If bass is not part of the triad but triad is complete, consider it a valid slash chord
-            if (bassPitch != root && bassPitch != third && bassPitch != fifth) {
-                isNaturalSlashChord = true;
-                return getNoteFromPitch(root) + "m"; // Extended slash chord with non-chord bass
-            }
+            // CRITICAL FIX: Remove extended slash chord logic to prevent false positives
+            // Only allow true inversions (3rd or 5th in bass), not arbitrary extensions
+            // This prevents extended chords from being misinterpreted as slash chords
         }
     }
     
@@ -1396,9 +2161,25 @@ ChordExtensions EnhancedHashLookupEngine::analyzeChordExtensions(uint16_t mask, 
     // Check for add tones
     uint16_t extraMask = mask & (~baseTriad);
     
-    // Check for common add tones
+    // Check for common add tones - maj9 vs add9 logic
     if (extraMask & (1 << ((rootPitch + 2) % 12))) {
-        extensions.addTones.push_back("add9");
+        // Enhanced maj9 vs add9 分岐: 7th音の有無で判定
+        bool has7th = (extraMask & (1 << ((rootPitch + 10) % 12))) ||  // minor 7th
+                     (extraMask & (1 << ((rootPitch + 11) % 12))) ||  // major 7th
+                     (baseChordName.find("7") != std::string::npos) ||
+                     (baseChordName.find("maj7") != std::string::npos);
+        
+        if (has7th) {
+            // 7th音があるなら maj9/m9
+            if (isMinor) {
+                extensions.addTones.push_back("9");  // m9
+            } else {
+                extensions.addTones.push_back("maj9"); // maj9
+            }
+        } else {
+            // 7th音がないなら add9
+            extensions.addTones.push_back("add9");
+        }
     }
     if (extraMask & (1 << ((rootPitch + 5) % 12))) {
         extensions.addTones.push_back("add11");
@@ -1998,4 +2779,472 @@ std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> EnhancedHashLookup
     }
     
     return candidates;
+}
+
+// PRIORITY DETECTION: Half-diminished (m7♭5) chord detection at low-level
+ChordCandidate EnhancedHashLookupEngine::detectHalfDiminished(uint16_t mask) const {
+    // Half-diminished chord pattern: root + m3 + dim5 + m7
+    // Example: Cm7♭5 = C + E♭ + G♭ + B♭ (semitones: 0, 3, 6, 10)
+    
+    // Clean implementation without debug output
+    
+    for (int root = 0; root < 12; root++) {
+        uint16_t halfDimPattern = (1 << root) |                    // Root
+                                 (1 << ((root + 3) % 12)) |        // Minor 3rd
+                                 (1 << ((root + 6) % 12)) |        // Diminished 5th
+                                 (1 << ((root + 10) % 12));        // Minor 7th
+        
+        // Check for exact pattern match
+        if ((mask & halfDimPattern) == halfDimPattern) {
+            // Calculate how well the mask matches (fewer extra notes = higher confidence)
+            int totalNotes = __builtin_popcount(mask);
+            int patternNotes = 4; // m7♭5 has exactly 4 notes
+            
+            float confidence = 5.0f; // Very high base confidence to beat slash chords
+            
+            // Penalize extra notes slightly
+            if (totalNotes > patternNotes) {
+                confidence *= (0.9f * patternNotes / totalNotes);
+            }
+            
+            // Extra boost if it's a clean 4-note match
+            if (totalNotes == patternNotes) {
+                confidence *= 1.5f; // Clean match bonus
+            }
+            
+            std::string chordName = getNoteFromPitch(root) + "m7♭5";
+            
+            return {chordName, mask, confidence};
+        }
+    }
+    
+    // No half-diminished pattern found
+    return {"", 0, 0.0f};
+}
+
+// ROOT ESTIMATION IMPLEMENTATION
+// Smart root detection for symmetric chords and complex harmonies
+
+int RootEstimator::estimateRoot(uint16_t mask, int bassNote) const {
+    // Priority 1: Lowest note as root (most common case)
+    if (bassNote >= 0) {
+        int bassPitchClass = bassNote % 12;
+        if (mask & (1 << bassPitchClass)) {
+            return bassPitchClass;
+        }
+    }
+    
+    // Priority 2: Interval structure analysis
+    int structuralRoot = estimateByIntervalStructure(mask);
+    if (structuralRoot >= 0) {
+        return structuralRoot;
+    }
+    
+    // Priority 3: Statistical frequency (common chord roots)
+    return estimateByStatisticalFrequency(mask);
+}
+
+std::vector<RootEstimator::RootCandidate> 
+RootEstimator::getAllRootCandidates(uint16_t mask, int bassNote) const {
+    std::vector<RootCandidate> candidates;
+    
+    // Evaluate each possible root
+    for (int root = 0; root < 12; root++) {
+        if (!(mask & (1 << root))) continue; // Root must be present
+        
+        float confidence = 0.0f;
+        std::string reason = "";
+        
+        // Factor 1: Lowest note bonus
+        if (bassNote >= 0 && (bassNote % 12) == root) {
+            confidence += 10.0f;
+            reason = "lowest_note";
+        }
+        
+        // Factor 2: Strong interval indicators
+        if (hasStrongRootIndicators(mask, root)) {
+            confidence += 8.0f;
+            if (!reason.empty()) reason += "+";
+            reason += "strong_intervals";
+        }
+        
+        // Factor 3: Perfect fifth presence
+        if (hasPerfectFifth(mask, root)) {
+            confidence += 5.0f;
+            if (!reason.empty()) reason += "+";
+            reason += "perfect_5th";
+        }
+        
+        // Factor 4: Major/minor third presence
+        if (hasMajorThird(mask, root) || hasMinorThird(mask, root)) {
+            confidence += 3.0f;
+            if (!reason.empty()) reason += "+";
+            reason += "3rd";
+        }
+        
+        // Factor 5: Statistical frequency bonus
+        int commonRoots[] = {0, 7, 5, 2, 9, 4}; // C, G, F, D, A, E
+        for (int i = 0; i < 6; i++) {
+            if (commonRoots[i] == root) {
+                confidence += (6 - i) * 0.5f; // Higher bonus for more common roots
+                break;
+            }
+        }
+        
+        candidates.push_back({root, confidence, reason});
+    }
+    
+    // Sort by confidence (highest first)
+    std::sort(candidates.begin(), candidates.end(), 
+              [](const RootCandidate& a, const RootCandidate& b) {
+                  return a.confidence > b.confidence;
+              });
+    
+    return candidates;
+}
+
+int RootEstimator::estimateByLowestNote(int bassNote) const {
+    return (bassNote >= 0) ? bassNote % 12 : -1;
+}
+
+int RootEstimator::estimateByIntervalStructure(uint16_t mask) const {
+    // Look for strong root indicators: root + perfect 5th + major/minor 3rd
+    for (int root = 0; root < 12; root++) {
+        if (!(mask & (1 << root))) continue;
+        
+        if (hasStrongRootIndicators(mask, root)) {
+            return root;
+        }
+    }
+    
+    return -1;
+}
+
+int RootEstimator::estimateByStatisticalFrequency(uint16_t mask) const {
+    // Common chord roots in order of frequency
+    int commonRoots[] = {0, 7, 5, 2, 9, 4, 11, 1, 6, 10, 3, 8}; // C, G, F, D, A, E, B, Db, Gb, Bb, Eb, Ab
+    
+    for (int root : commonRoots) {
+        if (mask & (1 << root)) {
+            return root;
+        }
+    }
+    
+    // Fallback: first note in mask
+    for (int i = 0; i < 12; i++) {
+        if (mask & (1 << i)) {
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
+bool RootEstimator::hasStrongRootIndicators(uint16_t mask, int root) const {
+    // Strong indicator: has both 3rd and 5th
+    return (hasMajorThird(mask, root) || hasMinorThird(mask, root)) && hasPerfectFifth(mask, root);
+}
+
+bool RootEstimator::hasPerfectFifth(uint16_t mask, int root) const {
+    int fifth = (root + 7) % 12;
+    return (mask & (1 << fifth)) != 0;
+}
+
+bool RootEstimator::hasMajorThird(uint16_t mask, int root) const {
+    int majorThird = (root + 4) % 12;
+    return (mask & (1 << majorThird)) != 0;
+}
+
+bool RootEstimator::hasMinorThird(uint16_t mask, int root) const {
+    int minorThird = (root + 3) % 12;
+    return (mask & (1 << minorThird)) != 0;
+}
+
+ChordCandidate EnhancedHashLookupEngine::generateExtendedChordTemplate(uint16_t mask, const std::string& chordName) const {
+    // Template for complex extended chords like Db13#11
+    
+    // Parse chord name for key components
+    if (chordName.find("13#11") != std::string::npos) {
+        // Extract root note (e.g., "Db" from "Db13#11")
+        std::string rootName = chordName.substr(0, chordName.find("13#11"));
+        
+        // Convert root name to pitch
+        int rootPitch = -1;
+        const char* noteNames[] = {"C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"};
+        for (int i = 0; i < 12; i++) {
+            if (rootName == noteNames[i]) {
+                rootPitch = i;
+                break;
+            }
+        }
+        
+        if (rootPitch >= 0) {
+            // Generate 13#11 template: root + M3 + P5 + b7 + 9 + #11 + 13
+            uint16_t templateMask = (1 << rootPitch) |                      // Root
+                                   (1 << ((rootPitch + 4) % 12)) |          // Major 3rd
+                                   (1 << ((rootPitch + 7) % 12)) |          // Perfect 5th
+                                   (1 << ((rootPitch + 10) % 12)) |         // Minor 7th
+                                   (1 << ((rootPitch + 2) % 12)) |          // 9th (major 2nd)
+                                   (1 << ((rootPitch + 6) % 12)) |          // #11 (tritone)
+                                   (1 << ((rootPitch + 9) % 12));           // 13th (major 6th)
+            
+            // Check how well input mask matches template
+            int commonNotes = __builtin_popcount(mask & templateMask);
+            int totalNotes = __builtin_popcount(mask);
+            int templateNotes = __builtin_popcount(templateMask);
+            
+            if (commonNotes >= 4) { // At least 4 notes match
+                float confidence = (float)commonNotes / (float)templateNotes * 2.0f; // Base confidence
+                if (totalNotes == templateNotes) {
+                    confidence *= 1.5f; // Perfect match bonus
+                }
+                
+                return {chordName, mask, confidence};
+            }
+        }
+    }
+    
+    // No template match
+    return {"", 0, 0.0f};
+}
+
+void EnhancedHashLookupEngine::normalizeCandidateScores(std::vector<ChordCandidate>& candidates) const {
+    if (candidates.empty()) return;
+    
+    // Apply softmax normalization to scores (0-10 range)
+    float maxScore = 0.0f;
+    for (const auto& candidate : candidates) {
+        maxScore = std::max(maxScore, candidate.confidence);
+    }
+    
+    // Prevent overflow by shifting scores
+    float sumExp = 0.0f;
+    for (auto& candidate : candidates) {
+        candidate.confidence = std::exp(candidate.confidence - maxScore);
+        sumExp += candidate.confidence;
+    }
+    
+    // Normalize to 0-10 range
+    for (auto& candidate : candidates) {
+        candidate.confidence = (candidate.confidence / sumExp) * 10.0f;
+    }
+}
+
+float EnhancedHashLookupEngine::calculateUniversalSlashScore(uint16_t mask, int rootPitch, int bassPitch) const {
+    if (rootPitch == bassPitch || rootPitch < 0 || bassPitch < 0) {
+        return 0.0f; // No slash if bass == root
+    }
+    
+    // Check if bass is part of the chord structure
+    if (!(mask & (1 << bassPitch))) {
+        return 0.0f; // Bass not in chord = not slash
+    }
+    
+    // Calculate interval from root to bass
+    int interval = (bassPitch - rootPitch + 12) % 12;
+    
+    float slashScore = 1.0f; // Base slash score
+    
+    // Common slash chord intervals get bonus
+    switch (interval) {
+        case 4:  // Major 3rd - very common (C/E)
+            slashScore += 0.5f;
+            break;
+        case 3:  // Minor 3rd - common in minor chords
+            slashScore += 0.4f;  
+            break;
+        case 7:  // Perfect 5th - common (C/G)
+            slashScore += 0.3f;
+            break;
+        case 10: // Minor 7th - jazz slash chords
+            slashScore += 0.2f;
+            break;
+        case 2:  // Major 2nd/9th - add9 slash
+            slashScore += 0.2f;
+            break;
+        default:
+            break; // Other intervals get base score only
+    }
+    
+    return slashScore;
+}
+
+std::vector<ChordCandidate> EnhancedHashLookupEngine::generateAllExtendedTemplates(uint16_t mask) const {
+    std::vector<ChordCandidate> candidates;
+    
+    struct ExtDef {
+        std::string name;
+        std::vector<int> intervals;
+    };
+    
+    // Extended chord definitions
+    const std::vector<ExtDef> extDefs = {
+        {"13#11", {0, 4, 7, 10, 2, 6, 9}},    // 1-3-5-7-9-#11-13
+        {"13b9",  {0, 4, 7, 10, 1, 9}},       // 1-3-5-7-b9-13
+        {"11#9",  {0, 4, 7, 10, 3, 5}},       // 1-3-5-7-#9-11
+        {"7#11",  {0, 4, 7, 10, 6}},          // 1-3-5-7-#11
+        {"add2#4", {0, 4, 7, 2, 6}},          // 1-3-5-2-#4
+        {"6/9",   {0, 4, 7, 9, 2}},           // 1-3-5-6-9
+    };
+    
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    
+    // Generate for all 12 roots
+    for (int root = 0; root < 12; root++) {
+        for (const auto& extDef : extDefs) {
+            uint16_t pattern = 0;
+            
+            // Build pattern mask
+            for (int interval : extDef.intervals) {
+                pattern |= (1 << ((root + interval) % 12));
+            }
+            
+            // Check how well input matches this pattern
+            int commonNotes = __builtin_popcount(mask & pattern);
+            int patternNotes = __builtin_popcount(pattern);
+            int totalNotes = __builtin_popcount(mask);
+            
+            if (commonNotes >= 4 && commonNotes >= patternNotes - 1) { // Allow 1 missing note
+                float confidence = (float)commonNotes / (float)patternNotes * 3.0f;
+                if (totalNotes == patternNotes) {
+                    confidence *= 1.5f; // Perfect match bonus
+                }
+                
+                std::string chordName = std::string(noteNames[root]) + extDef.name;
+                candidates.push_back({chordName, mask, confidence});
+            }
+        }
+    }
+    
+    return candidates;
+}
+
+std::vector<ChordCandidate> EnhancedHashLookupEngine::generateAllSlashCandidates(uint16_t mask) const {
+    std::vector<ChordCandidate> slashCandidates;
+    
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    
+    // Find actual lowest note with velocity consideration
+    int actualLowestNote = velocitySensitive_ ? findLowestNoteWithVelocity(20) : findLowestNote();
+    int lowestPitchClass = (actualLowestNote >= 0) ? actualLowestNote % 12 : -1;
+    
+    // Try each note as potential bass
+    for (int bassNote = 0; bassNote < 12; bassNote++) {
+        if (!(mask & (1 << bassNote))) continue; // Bass must be present
+        
+        // Create upper structure mask (without bass)
+        uint16_t upperMask = mask & ~(1 << bassNote);
+        if (__builtin_popcount(upperMask) < 2) continue; // Need at least 2 upper notes
+        
+        // Try to find chord patterns in upper structure
+        for (int root = 0; root < 12; root++) {
+            if (root == bassNote) continue; // Root != bass for slash chords
+            
+            // Check basic triad patterns
+            uint16_t majorTriad = (1 << root) | (1 << ((root + 4) % 12)) | (1 << ((root + 7) % 12));
+            uint16_t minorTriad = (1 << root) | (1 << ((root + 3) % 12)) | (1 << ((root + 7) % 12));
+            uint16_t dimTriad = (1 << root) | (1 << ((root + 3) % 12)) | (1 << ((root + 6) % 12));
+            
+            // Check 7th chords  
+            uint16_t dom7 = majorTriad | (1 << ((root + 10) % 12));
+            uint16_t maj7 = majorTriad | (1 << ((root + 11) % 12));
+            uint16_t min7 = minorTriad | (1 << ((root + 10) % 12));
+            
+            std::vector<std::pair<uint16_t, std::string>> patterns = {
+                {majorTriad, ""},
+                {minorTriad, "m"}, 
+                {dimTriad, "dim"},
+                {dom7, "7"},
+                {maj7, "maj7"},
+                {min7, "m7"}
+            };
+            
+            for (const auto& [pattern, suffix] : patterns) {
+                int commonNotes = __builtin_popcount(upperMask & pattern);
+                int patternNotes = __builtin_popcount(pattern);
+                
+                // CRITICAL: Upper chord MUST contain its root note AND be reasonably complete
+                if (commonNotes >= patternNotes - 1 && (upperMask & (1 << root))) {
+                    
+                    // CRITICAL FIX: Check if bass note is a chord member (inversion vs slash)
+                    // If bass note is already part of the chord pattern, it's an INVERSION, not a slash chord
+                    bool bassIsChordMember = (pattern & (1 << bassNote)) != 0;
+                    
+                    // Skip slash chord generation for inversions - they should be handled elsewhere
+                    if (bassIsChordMember) {
+                        continue; // This is an inversion, not a slash chord
+                    }
+                    
+                    float confidence = (float)commonNotes / (float)patternNotes * 2.0f;
+                    
+                    // Strong priority for exact matches
+                    if (commonNotes == patternNotes) {
+                        confidence *= 2.0f; // Perfect match gets major boost
+                    }
+                    
+                    // Major bonus for exact bass interval match
+                    int interval = (bassNote - root + 12) % 12;
+                    if (interval == 4) confidence += 1.0f; // 3rd in bass
+                    else if (interval == 7) confidence += 0.8f; // 5th in bass  
+                    else if (interval == 10) confidence += 0.6f; // 7th in bass
+                    
+                    // CRITICAL: Lowest-note weighting - user's suggested improvement
+                    // "lowest-note を強く重み付け score += (note==bass ? 1.5 : 0);"
+                    if (lowestPitchClass >= 0 && bassNote == lowestPitchClass) {
+                        confidence += 1.5f; // Strong boost for actual lowest note as bass
+                    }
+                    
+                    // PRINCIPLE: "まず '最低音≠根なら slash' を基本線にする"
+                    // If lowest note != root, apply slash basic principle boost
+                    if (lowestPitchClass >= 0 && lowestPitchClass != root && bassNote == lowestPitchClass) {
+                        confidence += 1.0f; // Additional boost for "lowest != root = slash" principle
+                    }
+                    
+                    // Penalty for bass notes that are NOT the actual lowest note
+                    if (lowestPitchClass >= 0 && bassNote != lowestPitchClass) {
+                        confidence *= 0.7f; // Reduce confidence for non-lowest bass candidates
+                    }
+                    
+                    // CRITICAL: Apply minimum confidence threshold to prevent false positives
+                    // Only accept slash chords with strong confidence to reduce false detection
+                    float minSlashConfidence = 3.5f; // Raised threshold for slash chord acceptance
+                    
+                    // Additional check: if bass note != lowest note, require even higher confidence
+                    if (lowestPitchClass >= 0 && bassNote != lowestPitchClass) {
+                        minSlashConfidence = 4.5f; // Much higher threshold for non-lowest bass
+                    }
+                    
+                    // Only add slash chord if it meets minimum confidence
+                    if (confidence >= minSlashConfidence) {
+                        std::string chordName = std::string(noteNames[root]) + suffix + "/" + noteNames[bassNote];
+                        slashCandidates.push_back({chordName, mask, confidence});
+                    }
+                }
+            }
+        }
+    }
+    
+    return slashCandidates;
+}
+
+void EnhancedHashLookupEngine::normalizeDetailedCandidateScores(std::vector<DetailedChordCandidate>& candidates) const {
+    if (candidates.empty()) return;
+    
+    // Apply softmax normalization to scores (0-10 range)
+    float maxScore = 0.0f;
+    for (const auto& candidate : candidates) {
+        maxScore = std::max(maxScore, candidate.confidence);
+    }
+    
+    // Prevent overflow by shifting scores
+    float sumExp = 0.0f;
+    for (auto& candidate : candidates) {
+        candidate.confidence = std::exp(candidate.confidence - maxScore);
+        sumExp += candidate.confidence;
+    }
+    
+    // Normalize to 0-10 range
+    for (auto& candidate : candidates) {
+        candidate.confidence = (candidate.confidence / sumExp) * 10.0f;
+    }
 }

@@ -196,7 +196,7 @@ std::vector<int> parseNoteNumbers(const std::string& input) {
 }
 
 // Process note numbers and detect chord
-void processNotes(const std::vector<int>& notes) {
+void processNotes(const std::vector<int>& notes, bool simpleOutput = false) {
     // Clear any existing notes
     for (int i = 0; i < 128; ++i) {
         chordlock.noteOff(i);
@@ -212,6 +212,16 @@ void processNotes(const std::vector<int>& notes) {
     
     // Detect chord with detailed analysis (includes bass separation)
     auto result = chordlock.detectChordWithDetailedAnalysis(5);
+    
+    if (simpleOutput) {
+        // Simple output for benchmarking: just the chord name
+        if (!result.hasValidChord || result.chordName == "No Chord") {
+            std::cout << "(no chord detected)" << std::endl;
+        } else {
+            std::cout << result.chordName << std::endl;
+        }
+        return;
+    }
     
     std::cout << "Notes: ";
     for (size_t i = 0; i < notes.size(); ++i) {
@@ -271,6 +281,7 @@ int main(int argc, char* argv[]) {
     std::string keyInput = "";
     std::string degreeInput = "";
     bool midiMode = true;
+    bool simpleOutput = false;
     
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -292,6 +303,8 @@ int main(int argc, char* argv[]) {
         } else if ((arg == "--degree" || arg == "-d") && i + 1 < argc) {
             degreeInput = argv[++i];
             midiMode = false;
+        } else if (arg == "--simple" || arg == "-s") {
+            simpleOutput = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
             std::cout << "Options:" << std::endl;
@@ -302,6 +315,7 @@ int main(int argc, char* argv[]) {
             std::cout << "  -c, --chord <name>      Convert chord name to MIDI notes (e.g., \"Cmaj7\", \"F#m\")" << std::endl;
             std::cout << "  -k, --key <key>         Set key context for rootless/polychord analysis (e.g., \"C\", \"Bb\", \"Fm\")" << std::endl;
             std::cout << "  -d, --degree <degree>   Convert degree to MIDI notes (requires -k, e.g., \"I\", \"vi7\", \"V9\")" << std::endl;
+            std::cout << "  -s, --simple            Simple output mode for benchmarking (minimal format)" << std::endl;
             std::cout << "  -h, --help              Show this help message" << std::endl;
             std::cout << "\nExamples:" << std::endl;
             std::cout << "  " << argv[0] << " -N 60,64,67           # Analyze C major chord" << std::endl;
@@ -359,9 +373,19 @@ int main(int argc, char* argv[]) {
         std::cout << "=====================================" << std::endl;
         std::cout << "Input chord: " << chordName << std::endl << std::endl;
         
-        // Try primary conversion
-        auto notes = chordlock.chordNameToNotes(chordName, 4);
+        // Try primary conversion (use octave 5 for benchmark compatibility)
+        auto notes = chordlock.chordNameToNotes(chordName, 5);
         if (!notes.empty()) {
+            if (simpleOutput) {
+                // Simple output for benchmarking: just space-separated MIDI numbers
+                for (size_t i = 0; i < notes.size(); i++) {
+                    std::cout << notes[i];
+                    if (i < notes.size() - 1) std::cout << " ";
+                }
+                std::cout << std::endl;
+                return 0;
+            }
+            
             std::cout << "✅ Primary result:" << std::endl;
             std::cout << "  MIDI Notes: [";
             for (size_t i = 0; i < notes.size(); i++) {
@@ -429,9 +453,19 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         
-        // Convert to notes
-        auto notes = chordlock.degreeToNotes(degreeInput, keyInfo.first, keyInfo.second, 4);
+        // Convert to notes (use octave 5 for benchmark compatibility)
+        auto notes = chordlock.degreeToNotes(degreeInput, keyInfo.first, keyInfo.second, 5);
         if (!notes.empty()) {
+            if (simpleOutput) {
+                // Simple output for benchmarking: just space-separated MIDI numbers
+                for (size_t i = 0; i < notes.size(); i++) {
+                    std::cout << notes[i];
+                    if (i < notes.size() - 1) std::cout << " ";
+                }
+                std::cout << std::endl;
+                return 0;
+            }
+            
             std::cout << "✅ Degree result:" << std::endl;
             std::cout << "  Chord name: " << chordName << std::endl;
             std::cout << "  MIDI Notes: [";
@@ -467,7 +501,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: No valid notes found in input" << std::endl;
             return 1;
         }
-        processNotes(notes);
+        processNotes(notes, simpleOutput);
     } else if (!filename.empty()) {
         // File input mode
         std::ifstream file(filename);
@@ -485,7 +519,7 @@ int main(int argc, char* argv[]) {
             std::cout << "\nLine " << lineNum << ": " << line << std::endl;
             std::vector<int> notes = parseNoteNumbers(line);
             if (!notes.empty()) {
-                processNotes(notes);
+                processNotes(notes, simpleOutput);
             }
         }
         file.close();

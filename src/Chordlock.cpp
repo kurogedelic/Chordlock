@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <cctype>
+#include <iostream>
 
 Chordlock::Chordlock() : Chordlock(EngineConfiguration()) {}
 
@@ -430,6 +431,12 @@ std::vector<int> Chordlock::chordNameToNotes(const std::string& chordName, int r
     
     std::string normalizedInput = normalizeChordName(chordName);
     
+    // Extended chord template matching
+    auto extendedNotes = generateExtendedChordNotes(chordName, rootOctave);
+    if (!extendedNotes.empty()) {
+        return extendedNotes;
+    }
+    
     // Fallback: Hash table search (may return inversions)
     for (size_t i = 0; i < ENHANCED_CHORD_TABLE_SIZE; i++) {
         std::string tableName = std::string(ENHANCED_CHORD_TABLE[i].name);
@@ -689,6 +696,31 @@ Chordlock::ChordSpec Chordlock::parseChordName(const std::string& input) {
     spec.rootNote = -1;
     
     if (input.empty()) {
+        return spec;
+    }
+    
+    // Check for slash chord notation (e.g., "C/E")
+    size_t slashPos = input.find('/');
+    if (slashPos != std::string::npos) {
+        // Parse as slash chord
+        std::string upperChord = input.substr(0, slashPos);
+        std::string bassNote = input.substr(slashPos + 1);
+        
+        // Get upper chord root and quality
+        auto upperSpec = parseChordName(upperChord);
+        if (upperSpec.rootNote == -1) {
+            return spec; // Invalid upper chord
+        }
+        
+        // Set bass note as the "root" for MIDI generation purposes
+        int bassNoteNum = noteNameToNumber(bassNote);
+        if (bassNoteNum == -1) {
+            return spec; // Invalid bass note
+        }
+        
+        spec.root = bassNote;
+        spec.rootNote = bassNoteNum;
+        spec.quality = "/" + upperChord; // Store full slash chord info in quality
         return spec;
     }
     
@@ -955,6 +987,31 @@ std::vector<int> Chordlock::calculateTheoreticalChord(const std::string& chordNa
         return {}; // Invalid chord name
     }
     
+    // Handle slash chords (quality starts with "/")
+    if (!spec.quality.empty() && spec.quality[0] == '/') {
+        std::string upperChord = spec.quality.substr(1); // Remove "/" prefix
+        
+        // Get upper chord notes
+        auto upperNotes = calculateTheoreticalChord(upperChord, rootOctave);
+        if (upperNotes.empty()) {
+            return {}; // Invalid upper chord
+        }
+        
+        // Add bass note at bottom
+        std::vector<int> slashNotes;
+        int bassNote = spec.rootNote + (rootOctave * 12);
+        slashNotes.push_back(bassNote);
+        
+        // Add upper chord notes
+        for (int note : upperNotes) {
+            if (note != bassNote) { // Avoid duplicate notes
+                slashNotes.push_back(note);
+            }
+        }
+        
+        return slashNotes;
+    }
+    
     std::vector<int> intervals = getIntervalsForQuality(spec.quality);
     if (intervals.empty()) {
         return {}; // Unknown chord type
@@ -971,6 +1028,10 @@ std::vector<int> Chordlock::calculateTheoreticalChord(const std::string& chordNa
 }
 
 bool Chordlock::isKnownChordType(const std::string& quality) {
+    // Slash chords are always known if the format is valid
+    if (!quality.empty() && quality[0] == '/') {
+        return true; // We can handle any slash chord
+    }
     return !getIntervalsForQuality(quality).empty();
 }
 
@@ -1246,40 +1307,48 @@ std::string Chordlock::degreeToChordName(const std::string& degree, int tonic, b
     std::string quality = "";
     std::string extension = "";
     
-    // Parse Roman numeral degree
-    if (degreeStr.find("i") == 0) {
+    // Parse Roman numeral degree (with flat/sharp support)
+    bool isFlat = (degreeStr.find("b") != std::string::npos);
+    bool isSharp = (degreeStr.find("#") != std::string::npos);
+    
+    // Remove accidentals for parsing
+    std::string cleanDegree = degreeStr;
+    cleanDegree.erase(std::remove(cleanDegree.begin(), cleanDegree.end(), 'b'), cleanDegree.end());
+    cleanDegree.erase(std::remove(cleanDegree.begin(), cleanDegree.end(), '#'), cleanDegree.end());
+    
+    if (cleanDegree.find("i") == 0) {
         degreeIndex = 0;
-        if (degreeStr.length() > 1 && degreeStr[1] == 'i') {
-            if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+        if (cleanDegree.length() > 1 && cleanDegree[1] == 'i') {
+            if (cleanDegree.length() > 2 && cleanDegree[2] == 'i') {
                 degreeIndex = 2; // iii
             } else {
                 degreeIndex = 1; // ii
             }
         }
-    } else if (degreeStr.find("ii") == 0) {
+    } else if (cleanDegree.find("ii") == 0) {
         degreeIndex = 1;
-        if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+        if (cleanDegree.length() > 2 && cleanDegree[2] == 'i') {
             degreeIndex = 2; // iii
         }
-    } else if (degreeStr.find("iii") == 0) {
+    } else if (cleanDegree.find("iii") == 0) {
         degreeIndex = 2;
-    } else if (degreeStr.find("iv") == 0) {
+    } else if (cleanDegree.find("iv") == 0) {
         degreeIndex = 3;
-    } else if (degreeStr.find("v") == 0) {
+    } else if (cleanDegree.find("v") == 0) {
         degreeIndex = 4;
-        if (degreeStr.length() > 1 && degreeStr[1] == 'i') {
-            if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+        if (cleanDegree.length() > 1 && cleanDegree[1] == 'i') {
+            if (cleanDegree.length() > 2 && cleanDegree[2] == 'i') {
                 degreeIndex = 6; // vii
             } else {
                 degreeIndex = 5; // vi
             }
         }
-    } else if (degreeStr.find("vi") == 0) {
+    } else if (cleanDegree.find("vi") == 0) {
         degreeIndex = 5;
-        if (degreeStr.length() > 2 && degreeStr[2] == 'i') {
+        if (cleanDegree.length() > 2 && cleanDegree[2] == 'i') {
             degreeIndex = 6; // vii
         }
-    } else if (degreeStr.find("vii") == 0) {
+    } else if (cleanDegree.find("vii") == 0) {
         degreeIndex = 6;
     }
     
@@ -1295,6 +1364,20 @@ std::string Chordlock::degreeToChordName(const std::string& degree, int tonic, b
     } else {
         rootNote = (tonic + majorScaleIntervals[degreeIndex]) % 12;
         quality = majorQualities[degreeIndex];
+    }
+    
+    // Apply accidentals (flat/sharp) - but for common degrees like bVII in minor, use standard interpretation
+    if (isFlat) {
+        // Special case for bVII in minor key - this typically means the natural 7th (major chord)
+        if (degreeIndex == 6 && isMinor) {
+            // bVII in minor key = natural 7th scale degree = major chord
+            // Keep the natural 7th interval but make it major
+            quality = ""; // Major chord
+        } else {
+            rootNote = (rootNote - 1 + 12) % 12;
+        }
+    } else if (isSharp) {
+        rootNote = (rootNote + 1) % 12;
     }
     
     // Parse extensions (7, 9, etc.)
@@ -1445,4 +1528,48 @@ std::string Chordlock::analyzeCurrentNotesToDegree(int tonic, bool isMinor) {
     }
     
     return analyzeDegree(result.chordName, tonic, isMinor);
+}
+
+std::vector<int> Chordlock::generateExtendedChordNotes(const std::string& chordName, int rootOctave) {
+    struct ExtDef {
+        std::string suffix;
+        std::vector<int> intervals;
+    };
+    
+    // Extended chord definitions (same as detection engine)
+    const std::vector<ExtDef> extDefs = {
+        {"13#11", {0, 4, 7, 10, 2, 6, 9}},    // 1-3-5-7-9-#11-13
+        {"13b9",  {0, 4, 7, 10, 1, 9}},       // 1-3-5-7-b9-13
+        {"11#9",  {0, 4, 7, 10, 3, 5}},       // 1-3-5-7-#9-11
+        {"7#11",  {0, 4, 7, 10, 6}},          // 1-3-5-7-#11
+        {"add2#4", {0, 4, 7, 2, 6}},          // 1-3-5-2-#4
+        {"6/9",   {0, 4, 7, 9, 2}},           // 1-3-5-6-9
+    };
+    
+    // Parse chord name to extract root and suffix
+    auto spec = parseChordName(chordName);
+    if (spec.rootNote == -1) {
+        return {}; // Invalid chord name
+    }
+    
+    // Check if this matches any extended chord pattern
+    for (const auto& extDef : extDefs) {
+        if (spec.quality == extDef.suffix || 
+            chordName.find(extDef.suffix) != std::string::npos) {
+            
+            std::vector<int> notes;
+            int baseNote = rootOctave * 12 + spec.rootNote;
+            
+            // Generate MIDI notes from intervals
+            for (int interval : extDef.intervals) {
+                notes.push_back(baseNote + interval);
+            }
+            
+            // Sort notes
+            std::sort(notes.begin(), notes.end());
+            return notes;
+        }
+    }
+    
+    return {}; // No extended chord match
 }

@@ -14,6 +14,37 @@
  * This engine uses the enhanced hash table generated from the fixed corpus,
  * which includes properly repaired Dominant 11th chords and extended harmonies.
  */
+// Forward declaration for nested class
+class EnhancedHashLookupEngine;
+
+// ROOT ESTIMATION: Smart root detection for symmetric chords
+class RootEstimator {
+public:
+    struct RootCandidate {
+        int root;
+        float confidence;
+        std::string reason;
+    };
+    
+    // Main estimation method
+    int estimateRoot(uint16_t mask, int bassNote) const;
+    
+    // Get all root candidates with confidence scores
+    std::vector<RootCandidate> getAllRootCandidates(uint16_t mask, int bassNote) const;
+    
+private:
+    // Music theory based estimation
+    int estimateByLowestNote(int bassNote) const;
+    int estimateByIntervalStructure(uint16_t mask) const;
+    int estimateByStatisticalFrequency(uint16_t mask) const;
+    
+    // Check for strong root indicators
+    bool hasStrongRootIndicators(uint16_t mask, int root) const;
+    bool hasPerfectFifth(uint16_t mask, int root) const;
+    bool hasMajorThird(uint16_t mask, int root) const;
+    bool hasMinorThird(uint16_t mask, int root) const;
+};
+
 class EnhancedHashLookupEngine : public IChordDetectionEngine {
 public:
     struct DetailedChordCandidate {
@@ -54,6 +85,7 @@ private:
     bool slashChordDetection_ = true;
     int currentKey_ = 0;
     KeyContext keyContext_; // Key-aware analysis
+    RootEstimator rootEstimator_; // Smart root detection
     
 public:
     EnhancedHashLookupEngine();
@@ -90,6 +122,16 @@ public:
     EnhancedLookupResult lookupChordDirect(uint16_t mask) const;
     EnhancedLookupResult lookupChordWithDetailedAnalysis(uint16_t mask, int maxResults = 5) const;
     
+    // Ambiguous set handling
+    struct AmbiguousSet {
+        uint16_t mask;
+        std::vector<std::string> equivalentChords;
+        std::string getLabel(int bassPitchClass) const;
+    };
+    
+    std::vector<AmbiguousSet> getAmbiguousSets() const;
+    bool isAmbiguousSet(uint16_t mask, AmbiguousSet& result) const;
+    
     // Helper methods for testing
     void setChordFromMIDI(const std::vector<int>& midiNotes, uint8_t baseVelocity = 80);
     uint16_t getCurrentMask() const;
@@ -113,12 +155,31 @@ private:
     
     // Enhanced bass-aware analysis
     int findLowestNote() const;
+    int findLowestNoteWithVelocity(uint8_t minVelocity = 20) const;
     int findNextLowestNote() const;
     int findHighestNote() const;
+    int getLowestNotePitch() const; // New: get lowest note pitch class
     std::string formatNoteName(int midiNote) const;
     uint16_t removeLowestNoteFromMask(uint16_t mask, int lowestNote) const;
     DetailedChordCandidate createSlashChordCandidate(const EnhancedChordEntry* upperChord, int bassNote, float baseConfidence) const;
     std::string analyzeNaturalSlashChord(uint16_t mask, int bassPitch, bool& isNaturalSlashChord) const;
+    
+    // PRIORITY DETECTION: Critical chord patterns detected first
+    ChordCandidate detectHalfDiminished(uint16_t mask) const;
+    
+    // Extended chord template generation
+    ChordCandidate generateExtendedChordTemplate(uint16_t mask, const std::string& chordName) const;
+    std::vector<ChordCandidate> generateAllExtendedTemplates(uint16_t mask) const;
+    
+    // Score normalization utilities
+    void normalizeCandidateScores(std::vector<ChordCandidate>& candidates) const;
+    void normalizeDetailedCandidateScores(std::vector<DetailedChordCandidate>& candidates) const;
+    
+    // Universal slash chord scoring (scale-independent)
+    float calculateUniversalSlashScore(uint16_t mask, int rootPitch, int bassPitch) const;
+    
+    // Comprehensive slash candidate generation
+    std::vector<ChordCandidate> generateAllSlashCandidates(uint16_t mask) const;
     
     // 6th chord detection
     std::vector<EnhancedHashLookupEngine::DetailedChordCandidate> detect6thChords(uint16_t mask) const;
