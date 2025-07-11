@@ -1,12 +1,24 @@
 /**
  * ChordLock JavaScript Implementation
- * Simplified chord identification for web demo
+ * Enhanced with Web MIDI API and Virtual Piano
  */
 
 class ChordLock {
     constructor() {
         this.chordPatterns = new Map();
         this.initializeChordDatabase();
+        
+        // MIDI variables
+        this.midiAccess = null;
+        this.activeNotes = new Set();
+        this.sustainTimeout = null;
+        
+        // Piano variables
+        this.pianoKeys = new Map();
+        this.currentOctave = 4;
+        
+        this.initializePiano();
+        this.checkMIDISupport();
     }
     
     initializeChordDatabase() {
@@ -51,7 +63,6 @@ class ChordLock {
     }
     
     addInversions() {
-        // Add first and second inversions for triads
         const triads = [
             { intervals: [0, 4, 7], symbol: "", name: "Major" },
             { intervals: [0, 3, 7], symbol: "m", name: "Minor" },
@@ -60,8 +71,8 @@ class ChordLock {
         ];
         
         triads.forEach(chord => {
-            // First inversion (3rd in bass)
-            const firstInv = [0, 3, 8]; // E-G-C for C major
+            // First inversion
+            const firstInv = [0, 3, 8];
             this.chordPatterns.set(firstInv.join(','), {
                 name: chord.name,
                 symbol: chord.symbol,
@@ -71,8 +82,8 @@ class ChordLock {
                 originalIntervals: chord.intervals
             });
             
-            // Second inversion (5th in bass)
-            const secondInv = [0, 5, 9]; // G-C-E for C major  
+            // Second inversion
+            const secondInv = [0, 5, 9];
             this.chordPatterns.set(secondInv.join(','), {
                 name: chord.name,
                 symbol: chord.symbol,
@@ -84,15 +95,215 @@ class ChordLock {
         });
     }
     
+    // Piano functionality
+    initializePiano() {
+        const piano = document.getElementById('piano');
+        if (!piano) return;
+        
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+        const blackKeys = ['C#', 'D#', 'F#', 'G#', 'A#'];
+        
+        // Create white keys first
+        whiteKeys.forEach((note, index) => {
+            const key = document.createElement('div');
+            const midiNote = this.currentOctave * 12 + notes.indexOf(note);
+            
+            key.className = 'piano-key white';
+            key.textContent = note;
+            key.dataset.note = midiNote;
+            
+            key.addEventListener('mousedown', () => this.playNote(midiNote));
+            key.addEventListener('mouseup', () => this.stopNote(midiNote));
+            key.addEventListener('mouseleave', () => this.stopNote(midiNote));
+            
+            piano.appendChild(key);
+            this.pianoKeys.set(midiNote, key);
+        });
+        
+        // Create black keys and position them
+        const blackKeyPositions = [0.5, 1.5, 3.5, 4.5, 5.5]; // Positions between white keys
+        blackKeys.forEach((note, index) => {
+            const key = document.createElement('div');
+            const midiNote = this.currentOctave * 12 + notes.indexOf(note);
+            
+            key.className = 'piano-key black';
+            key.textContent = note;
+            key.dataset.note = midiNote;
+            
+            key.addEventListener('mousedown', () => this.playNote(midiNote));
+            key.addEventListener('mouseup', () => this.stopNote(midiNote));
+            key.addEventListener('mouseleave', () => this.stopNote(midiNote));
+            
+            // Position black key between white keys
+            key.style.position = 'absolute';
+            key.style.left = `${blackKeyPositions[index] * 42 + 20}px`;
+            
+            piano.appendChild(key);
+            this.pianoKeys.set(midiNote, key);
+        });
+        
+        // Set piano container position relative for black key positioning
+        piano.style.position = 'relative';
+    }
+    
+    playNote(midiNote) {
+        this.activeNotes.add(midiNote);
+        this.updatePianoDisplay();
+        this.updateActiveNotes();
+        this.scheduleChordIdentification();
+    }
+    
+    stopNote(midiNote) {
+        this.activeNotes.delete(midiNote);
+        this.updatePianoDisplay();
+        this.updateActiveNotes();
+        this.scheduleChordIdentification();
+    }
+    
+    updatePianoDisplay() {
+        this.pianoKeys.forEach((key, midiNote) => {
+            if (this.activeNotes.has(midiNote)) {
+                key.classList.add('active');
+            } else {
+                key.classList.remove('active');
+            }
+        });
+    }
+    
+    updateActiveNotes() {
+        const activeNotesDiv = document.getElementById('active-notes');
+        if (!activeNotesDiv) return;
+        
+        activeNotesDiv.innerHTML = '';
+        
+        if (this.activeNotes.size === 0) {
+            const placeholder = document.createElement('span');
+            placeholder.style.opacity = '0.6';
+            placeholder.style.fontStyle = 'italic';
+            placeholder.textContent = 'Click piano keys or connect MIDI device...';
+            activeNotesDiv.appendChild(placeholder);
+            return;
+        }
+        
+        const sortedNotes = Array.from(this.activeNotes).sort((a, b) => a - b);
+        
+        sortedNotes.forEach(note => {
+            const noteSpan = document.createElement('span');
+            noteSpan.className = 'active-note';
+            noteSpan.textContent = `${this.midiToNoteName(note)} (${note})`;
+            activeNotesDiv.appendChild(noteSpan);
+        });
+    }
+    
+    scheduleChordIdentification() {
+        if (this.sustainTimeout) {
+            clearTimeout(this.sustainTimeout);
+        }
+        
+        const autoIdentify = document.getElementById('auto-identify')?.checked;
+        if (!autoIdentify || this.activeNotes.size < 2) {
+            return;
+        }
+        
+        this.sustainTimeout = setTimeout(() => {
+            if (this.activeNotes.size >= 2) {
+                const noteArray = Array.from(this.activeNotes);
+                document.getElementById('midi-notes').value = noteArray.join(',');
+                identifyChord();
+            }
+        }, 300);
+    }
+    
+    // MIDI functionality
+    async checkMIDISupport() {
+        const supportElement = document.getElementById('midi-support');
+        if (navigator.requestMIDIAccess) {
+            supportElement.textContent = 'Available';
+            supportElement.style.color = 'var(--success-color)';
+        } else {
+            supportElement.textContent = 'Not supported';
+            supportElement.style.color = 'var(--error-color)';
+        }
+    }
+    
+    async connectMIDI() {
+        if (!navigator.requestMIDIAccess) {
+            alert('Web MIDI API not supported in this browser. Please use Chrome, Edge, or Opera.');
+            return;
+        }
+        
+        try {
+            document.getElementById('midi-status-text').textContent = 'Connecting...';
+            this.midiAccess = await navigator.requestMIDIAccess();
+            
+            this.setupMIDI();
+            document.getElementById('midi-indicator').classList.add('connected');
+            document.getElementById('midi-status-text').textContent = 'MIDI Connected';
+            document.getElementById('midi-connect-btn').textContent = 'Disconnect';
+            document.getElementById('midi-connect-btn').onclick = () => this.disconnectMIDI();
+            
+            console.log('MIDI access granted');
+            
+        } catch (error) {
+            console.error('Failed to access MIDI:', error);
+            document.getElementById('midi-status-text').textContent = 'MIDI Failed';
+            alert('Failed to access MIDI devices. Please ensure your MIDI device is connected.');
+        }
+    }
+    
+    setupMIDI() {
+        if (!this.midiAccess) return;
+        
+        for (const input of this.midiAccess.inputs.values()) {
+            console.log('MIDI Input:', input.name);
+            input.onmidimessage = (event) => this.handleMIDIMessage(event);
+        }
+        
+        this.midiAccess.onstatechange = (event) => {
+            console.log('MIDI device state changed:', event.port.name, event.port.state);
+        };
+    }
+    
+    handleMIDIMessage(event) {
+        const [command, note, velocity] = event.data;
+        
+        const isNoteOn = (command & 0xF0) === 0x90 && velocity > 0;
+        const isNoteOff = (command & 0xF0) === 0x80 || ((command & 0xF0) === 0x90 && velocity === 0);
+        
+        if (isNoteOn) {
+            this.playNote(note);
+        } else if (isNoteOff) {
+            this.stopNote(note);
+        }
+    }
+    
+    disconnectMIDI() {
+        if (this.midiAccess) {
+            for (const input of this.midiAccess.inputs.values()) {
+                input.onmidimessage = null;
+            }
+            this.midiAccess = null;
+        }
+        
+        this.activeNotes.clear();
+        this.updatePianoDisplay();
+        this.updateActiveNotes();
+        
+        document.getElementById('midi-indicator').classList.remove('connected');
+        document.getElementById('midi-status-text').textContent = 'MIDI Disconnected';
+        document.getElementById('midi-connect-btn').textContent = 'Connect MIDI';
+        document.getElementById('midi-connect-btn').onclick = () => this.connectMIDI();
+    }
+    
+    // Chord identification
     normalizeToSemitones(midiNotes) {
         if (!midiNotes || midiNotes.length === 0) return [];
         
-        // Convert to semitone classes and sort
         let semitones = midiNotes.map(note => note % 12);
-        semitones = [...new Set(semitones)]; // Remove duplicates
+        semitones = [...new Set(semitones)];
         semitones.sort((a, b) => a - b);
         
-        // Convert to intervals starting from lowest note
         const root = semitones[0];
         return semitones.map(note => (note - root + 12) % 12);
     }
@@ -107,16 +318,11 @@ class ChordLock {
             return midiNotes.reduce((min, note) => note < min ? note : min);
         }
         
-        // For inversions, calculate the theoretical root
         const bassNote = midiNotes.reduce((min, note) => note < min ? note : min);
-        const bassClass = bassNote % 12;
         
-        // Find the root based on inversion
         if (chordInfo.inversion === 1) {
-            // First inversion: bass is 3rd, root is 4 semitones down
             return bassNote - 4 + (bassNote - 4 < 0 ? 12 : 0);
         } else if (chordInfo.inversion === 2) {
-            // Second inversion: bass is 5th, root is 7 semitones down  
             return bassNote - 7 + (bassNote - 7 < 0 ? 12 : 0);
         }
         
@@ -144,7 +350,6 @@ class ChordLock {
         let confidence = 1.0;
         
         if (!chordInfo) {
-            // Try to find partial match
             confidence = 0.7;
             chordInfo = this.findBestMatch(intervals);
         }
@@ -161,11 +366,9 @@ class ChordLock {
             };
         }
         
-        // Determine root note
         const rootMidi = this.detectRoot(midiNotes, intervals, chordInfo);
         const rootName = this.midiToNoteName(rootMidi);
         
-        // Generate chord name
         let chordName = rootName + chordInfo.symbol;
         const isSlashChord = !chordInfo.rootPosition && chordInfo.inversion;
         
@@ -240,25 +443,41 @@ function identifyChord() {
         
         // Display results
         document.getElementById('chord-name').textContent = result.chordName;
-        document.getElementById('input-notes').textContent = midiNotes.join(', ');
         document.getElementById('note-names').textContent = result.noteNames.join(', ');
         document.getElementById('intervals').textContent = result.intervals.join(', ');
         document.getElementById('confidence').textContent = Math.round(result.confidence * 100) + '%';
         document.getElementById('processing-time').textContent = result.processingTime.toFixed(3) + 'ms';
         
-        document.getElementById('result').style.display = 'block';
+        document.getElementById('chord-result').style.display = 'block';
         
     } catch (error) {
         alert('Error identifying chord: ' + error.message);
     }
 }
 
-function clearResult() {
+function clearAll() {
     document.getElementById('midi-notes').value = '';
-    document.getElementById('result').style.display = 'none';
+    document.getElementById('chord-result').style.display = 'none';
+    chordLock.activeNotes.clear();
+    chordLock.updatePianoDisplay();
+    chordLock.updateActiveNotes();
 }
 
-// Auto-identify on page load
+function connectMIDI() {
+    chordLock.connectMIDI();
+}
+
+// Initialize on page load
 window.addEventListener('load', () => {
+    // Auto-identify default chord
     identifyChord();
+    
+    // Handle octave selection
+    const octaveSelect = document.getElementById('octave-select');
+    if (octaveSelect) {
+        octaveSelect.addEventListener('change', (e) => {
+            chordLock.currentOctave = parseInt(e.target.value);
+            chordLock.initializePiano();
+        });
+    }
 });

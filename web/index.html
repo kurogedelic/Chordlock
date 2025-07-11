@@ -3,151 +3,368 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChordLock - Chord Identification Demo</title>
+    <title>ChordLock - Advanced Chord Detection</title>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1d1d1f;
+            --accent-color: #007aff;
+            --secondary-bg: #f5f5f7;
+            --border-color: #d1d1d6;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --success-color: #34c759;
+            --warning-color: #ff9500;
+            --error-color: #ff3b30;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --text-color: #f5f5f7;
+                --accent-color: #0a84ff;
+                --secondary-bg: #1c1c1e;
+                --border-color: #38383a;
+                --card-bg: #1c1c1e;
+                --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+                --success-color: #30d158;
+                --warning-color: #ff9f0a;
+                --error-color: #ff453a;
+            }
+        }
+        
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: all 0.2s ease;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 60px 20px;
         }
         
-        .header {
-            text-align: center;
-            margin-bottom: 50px;
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-btn {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .nav-btn:hover {
+            background: var(--accent-color);
             color: white;
+            border-color: var(--accent-color);
         }
         
-        .header h1 {
-            font-size: 3rem;
+        .nav-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .hero h1 {
+            font-size: 4rem;
             font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            color: var(--text-color);
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent-color), #5856d6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
+        .hero p {
+            font-size: 1.5rem;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
         
-        .demo-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: var(--shadow);
+        }
+        
+        .panel h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .input-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         
         .input-group label {
             display: block;
-            font-weight: 600;
+            font-weight: 500;
             margin-bottom: 8px;
-            color: #555;
+            color: var(--text-color);
         }
         
-        .input-group input {
+        .input-group input, .input-group select {
             width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #e1e5e9;
-            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--secondary-bg);
+            color: var(--text-color);
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
         
-        .input-group input:focus {
+        .input-group input:focus, .input-group select:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
         }
         
         .button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: inline-block;
+            background: var(--accent-color);
             color: white;
-            padding: 15px 30px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 12px;
+            border-radius: 8px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: all 0.2s ease;
+            text-decoration: none;
             margin: 5px;
         }
         
         .button:hover {
-            transform: translateY(-2px);
+            opacity: 0.9;
+            transform: translateY(-1px);
         }
         
         .button.secondary {
-            background: #f8f9fa;
-            color: #555;
-            border: 2px solid #e1e5e9;
+            background: var(--secondary-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
         }
         
-        .presets {
+        .button.secondary:hover {
+            background: var(--border-color);
+        }
+        
+        .preset-chords {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin-bottom: 15px;
         }
         
-        .preset-btn {
-            background: #f8f9fa;
-            border: 2px solid #e1e5e9;
-            color: #555;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.9rem;
+        .preset-chord {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            text-align: center;
         }
         
-        .preset-btn:hover {
-            background: #667eea;
+        .preset-chord:hover {
+            background: var(--accent-color);
             color: white;
-            border-color: #667eea;
+            border-color: var(--accent-color);
+        }
+        
+        .midi-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: var(--secondary-bg);
+            border-radius: 8px;
+        }
+        
+        .midi-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--error-color);
+            transition: all 0.3s ease;
+        }
+        
+        .midi-indicator.connected {
+            background: var(--success-color);
+            box-shadow: 0 0 10px var(--success-color);
+        }
+        
+        .piano-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+        
+        .piano-container h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            text-align: center;
+        }
+        
+        .piano {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            background: #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            min-height: 200px;
+        }
+        
+        .piano-key {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.1s ease;
+        }
+        
+        .piano-key.white {
+            width: 40px;
+            height: 160px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 0 0 4px 4px;
+            margin: 0 1px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .piano-key.black {
+            width: 28px;
+            height: 100px;
+            background: #333;
+            border-radius: 0 0 4px 4px;
+            margin: 0 -14px;
+            z-index: 2;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 8px;
+            font-size: 10px;
+            color: #ccc;
+        }
+        
+        .piano-key.active {
+            background: var(--accent-color) !important;
+            color: white !important;
+            transform: translateY(2px);
+        }
+        
+        .piano-key:hover {
+            opacity: 0.8;
+        }
+        
+        .active-notes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 40px;
+            padding: 12px;
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .active-note {
+            background: var(--accent-color);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            animation: noteIn 0.2s ease;
+        }
+        
+        @keyframes noteIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
         
         .result {
-            background: #f8f9fa;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 25px;
-            margin-top: 25px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .result h3 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-        
-        .chord-name {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 10px;
+            padding: 20px;
+            margin-top: 20px;
         }
         
         .result-item {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 8px 0;
-            border-bottom: 1px solid #e1e5e9;
+            border-bottom: 1px solid var(--border-color);
         }
         
         .result-item:last-child {
@@ -156,23 +373,74 @@
         
         .result-label {
             font-weight: 500;
-            color: #666;
+            color: var(--text-color);
+            opacity: 0.8;
         }
         
         .result-value {
             font-weight: 600;
-            color: #333;
+            color: var(--text-color);
+        }
+        
+        .chord-name {
+            font-size: 1.5rem;
+            color: var(--accent-color);
+        }
+        
+        .features {
+            background: var(--secondary-bg);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .features h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-color);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature-item {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+        
+        .feature-item h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+        
+        .feature-item p {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.8;
         }
         
         .footer {
             text-align: center;
-            color: white;
+            padding: 40px 0;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-color);
             opacity: 0.8;
-            margin-top: 40px;
         }
         
         .footer a {
-            color: white;
+            color: var(--accent-color);
             text-decoration: none;
         }
         
@@ -183,61 +451,147 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <div class="nav-bar">
+            <div class="nav-btn active">🎹 Piano</div>
+            <a href="https://github.com/kurogedelic/ChordLock" target="_blank" class="nav-btn">📦 GitHub</a>
+            <a href="https://github.com/kurogedelic/ChordLock#readme" target="_blank" class="nav-btn">📖 Docs</a>
+        </div>
+        
+        <div class="hero">
             <h1>🎵 ChordLock</h1>
-            <p>Ultra-fast chord identification from MIDI notes</p>
+            <p>Advanced chord detection with real-time MIDI support and virtual piano</p>
         </div>
         
-        <div class="demo-card">
-            <div class="input-group">
-                <label for="midi-notes">MIDI Notes (comma-separated)</label>
-                <input type="text" id="midi-notes" placeholder="60,64,67" value="60,64,67">
+        <div class="piano-container">
+            <h2>🎹 Virtual Piano</h2>
+            <div class="piano" id="piano"></div>
+            
+            <div class="active-notes" id="active-notes">
+                <span style="opacity: 0.6; font-style: italic;">Click piano keys or connect MIDI device...</span>
             </div>
-            
-            <div class="presets">
-                <button class="preset-btn" onclick="setNotes('60,64,67')">C Major</button>
-                <button class="preset-btn" onclick="setNotes('60,63,67')">C Minor</button>
-                <button class="preset-btn" onclick="setNotes('60,64,67,70')">C7</button>
-                <button class="preset-btn" onclick="setNotes('60,64,67,71')">CMaj7</button>
-                <button class="preset-btn" onclick="setNotes('60,63,67,70')">Cm7</button>
-                <button class="preset-btn" onclick="setNotes('64,67,72')">C/E</button>
-                <button class="preset-btn" onclick="setNotes('67,72,76')">C/G</button>
-                <button class="preset-btn" onclick="setNotes('62,66,69')">D Major</button>
+        </div>
+
+        <div class="main-content">
+            <!-- MIDI Input → Chord Detection -->
+            <div class="panel">
+                <h2>🎼 Chord Detection</h2>
+                
+                <div class="midi-status">
+                    <div class="midi-indicator" id="midi-indicator"></div>
+                    <span id="midi-status-text">MIDI Disconnected</span>
+                    <button class="button secondary" onclick="connectMIDI()" id="midi-connect-btn">Connect MIDI</button>
+                </div>
+                
+                <div class="input-group">
+                    <label for="midi-notes">MIDI Notes (manual input)</label>
+                    <input type="text" id="midi-notes" placeholder="60,64,67" value="60,64,67">
+                </div>
+                
+                <div class="preset-chords">
+                    <div class="preset-chord" onclick="setNotes('60,64,67')">C</div>
+                    <div class="preset-chord" onclick="setNotes('60,63,67')">Cm</div>
+                    <div class="preset-chord" onclick="setNotes('60,64,67,70')">C7</div>
+                    <div class="preset-chord" onclick="setNotes('60,64,67,71')">CM7</div>
+                    <div class="preset-chord" onclick="setNotes('60,63,67,70')">Cm7</div>
+                    <div class="preset-chord" onclick="setNotes('64,67,72')">C/E</div>
+                </div>
+                
+                <button class="button" onclick="identifyChord()">🔍 Identify Chord</button>
+                <button class="button secondary" onclick="clearAll()">Clear</button>
+                
+                <div id="chord-result" class="result" style="display: none;">
+                    <div class="result-item">
+                        <span class="result-label">Chord:</span>
+                        <span class="result-value chord-name" id="chord-name">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Note Names:</span>
+                        <span class="result-value" id="note-names">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Intervals:</span>
+                        <span class="result-value" id="intervals">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Confidence:</span>
+                        <span class="result-value" id="confidence">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Processing Time:</span>
+                        <span class="result-value" id="processing-time">-</span>
+                    </div>
+                </div>
             </div>
-            
-            <button class="button" onclick="identifyChord()">🔍 Identify Chord</button>
-            <button class="button secondary" onclick="clearResult()">Clear</button>
-            
-            <div id="result" class="result" style="display: none;">
-                <h3>🎹 Chord Identification Result</h3>
-                <div class="chord-name" id="chord-name">-</div>
-                <div class="result-item">
-                    <span class="result-label">Input Notes:</span>
-                    <span class="result-value" id="input-notes">-</span>
+
+            <!-- Settings & Info -->
+            <div class="panel">
+                <h2>⚙️ Settings</h2>
+                
+                <div class="input-group">
+                    <label for="auto-identify">
+                        <input type="checkbox" id="auto-identify" checked style="width: auto; margin-right: 8px;">
+                        Auto-identify chords
+                    </label>
                 </div>
-                <div class="result-item">
-                    <span class="result-label">Note Names:</span>
-                    <span class="result-value" id="note-names">-</span>
+                
+                <div class="input-group">
+                    <label for="octave-select">Octave Range</label>
+                    <select id="octave-select">
+                        <option value="4">C4 - B4 (Middle)</option>
+                        <option value="3">C3 - B3 (Low)</option>
+                        <option value="5">C5 - B5 (High)</option>
+                    </select>
                 </div>
-                <div class="result-item">
-                    <span class="result-label">Intervals:</span>
-                    <span class="result-value" id="intervals">-</span>
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Confidence:</span>
-                    <span class="result-value" id="confidence">-</span>
-                </div>
-                <div class="result-item">
-                    <span class="result-label">Processing Time:</span>
-                    <span class="result-value" id="processing-time">-</span>
+                
+                <div class="result">
+                    <div class="result-item">
+                        <span class="result-label">Engine:</span>
+                        <span class="result-value">ChordLock JS v2.0</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Patterns:</span>
+                        <span class="result-value">50+ chord types</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">MIDI Support:</span>
+                        <span class="result-value" id="midi-support">Checking...</span>
+                    </div>
                 </div>
             </div>
         </div>
-        
+
+        <div class="features">
+            <h2>🚀 Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">🎹</div>
+                    <h4>Virtual Piano</h4>
+                    <p>Interactive piano with click-to-play functionality</p>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">🎵</div>
+                    <h4>MIDI Support</h4>
+                    <p>Real-time input from external MIDI devices</p>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <h4>Fast Detection</h4>
+                    <p>Sub-millisecond chord identification</p>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">🧠</div>
+                    <h4>Smart Analysis</h4>
+                    <p>Advanced pattern matching with inversions</p>
+                </div>
+            </div>
+        </div>
+
         <div class="footer">
-            <p>Powered by <a href="https://github.com/kurogedelic/ChordLock" target="_blank">ChordLock</a> - 
-            Ultra-fast chord identification engine</p>
-            <p>© 2024-2025 Leo Kuroshita (@kurogedelic)</p>
+            <p>Powered by <a href="https://github.com/kurogedelic/ChordLock" target="_blank">ChordLock</a> - Ultra-fast chord identification engine</p>
+            <p>© 2024-2025 Leo Kuroshita (<a href="https://github.com/kurogedelic" target="_blank">@kurogedelic</a>)</p>
         </div>
     </div>
 
