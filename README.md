@@ -10,12 +10,17 @@ Ultra-fast chord identification engine with real-time MIDI support.
 - **🎼 Inversion Detection**: Automatic bass note and slash chord recognition
 - **🔄 Multiple Formats**: CLI, WebAssembly, C++ library
 
+## 🌐 Web Demo
+
+**Try it live**: https://kurogedelic.github.io/ChordLock/web/
+
+Interactive chord identification in your browser - no installation required!
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 - C++17 compatible compiler
 - CMake 3.15+
-- For WebAssembly: Emscripten SDK
 
 ### Build & Test
 ```bash
@@ -25,6 +30,14 @@ mkdir build && cd build
 cmake ..
 make
 ./chordlock_cli 60,64,67  # Test C Major
+```
+
+### Web Demo (Local)
+```bash
+cd web
+# Serve with any web server, e.g.:
+python3 -m http.server 8000
+# Open http://localhost:8000
 ```
 
 ## 📁 Project Structure
@@ -43,7 +56,14 @@ ChordLock/
 │   └── InversionDetector.* # Bass detection & inversions
 ├── Data/                   # Chord patterns
 │   └── CompiledTables.h    # Pre-compiled chord database
-└── Examples/               # Usage examples
+├── Examples/               # Usage examples
+│   └── cli_example.cpp     # Command-line interface
+├── web/                    # Web demo
+│   ├── index.html          # Interactive demo page
+│   ├── chordlock.js        # JavaScript implementation
+│   └── README.md           # Web demo documentation
+└── .github/workflows/      # GitHub Actions
+    └── pages.yml           # Auto-deploy to GitHub Pages
 ```
 
 ## 🎯 Performance
