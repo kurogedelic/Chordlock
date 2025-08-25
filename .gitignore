@@ -1,0 +1,65 @@
+# Build directories
+build/
+cmake-build-*/
+
+# Compiled binaries
+*.exe
+*.out
+*.app
+*.dylib
+*.so
+*.dll
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.lib
+*.a
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*_test.txt
+*_test.yaml
+test_*.sh
+*.bak
+*.orig
+
+# Package files
+*.pkg
+*.deb
+*.rpm
+
+# Documentation build
+docs/_build/
+docs/html/
+docs/latex/
+
+# Debug files
+*.dSYM/
+*.pdb
+*.ilk
+
+# Performance test results
+benchmark_results.txt
+perf_*.log

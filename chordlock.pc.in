@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: ChordLock
+Description: High-performance chord identification library
+Version: @PROJECT_VERSION@
+URL: https://github.com/kurogedelic/ChordLock
+License: LGPL-3.0
+Libs: -L${libdir} -lchordlock
+Cflags: -I${includedir}

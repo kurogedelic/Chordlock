@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChordLock - Ultra-Fast Chord Recognition Engine</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 ChordLock</h1>
+            <p class="tagline">Ultra-Fast Chord Recognition Engine</p>
+            <div class="performance-badge">
+                <span id="performance">0.749μs/chord</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Piano Keyboard -->
+            <section class="piano-section">
+                <h2>Virtual Piano</h2>
+                <div class="piano-container">
+                    <div id="piano" class="piano"></div>
+                </div>
+                <div class="selected-notes">
+                    <h3>Selected Notes:</h3>
+                    <div id="selected-notes-display"></div>
+                </div>
+            </section>
+
+            <!-- Chord Analysis -->
+            <section class="analysis-section">
+                <div class="analysis-header">
+                    <h2>Chord Analysis</h2>
+                    <div class="mode-selector">
+                        <label>Mode:</label>
+                        <select id="recognition-mode">
+                            <option value="standard">Standard</option>
+                            <option value="jazz">Jazz</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="result-display">
+                    <div class="main-result">
+                        <div class="chord-name" id="chord-name">-</div>
+                        <div class="chord-symbol" id="chord-symbol"></div>
+                    </div>
+                    
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <label>Root:</label>
+                            <span id="root-note">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Quality:</label>
+                            <span id="quality">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Intervals:</label>
+                            <span id="intervals">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Confidence:</label>
+                            <span id="confidence">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Processing:</label>
+                            <span id="processing-time">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Category:</label>
+                            <span id="category">-</span>
+                        </div>
+                    </div>
+
+                    <div class="special-features" id="special-features">
+                        <span class="feature-badge" id="inversion-badge" style="display:none">Inversion</span>
+                        <span class="feature-badge" id="slash-badge" style="display:none">Slash Chord</span>
+                        <span class="feature-badge" id="rootless-badge" style="display:none">Rootless</span>
+                        <span class="feature-badge" id="quartal-badge" style="display:none">Quartal</span>
+                        <span class="feature-badge" id="polychord-badge" style="display:none">Polychord</span>
+                    </div>
+                </div>
+
+                <!-- Jazz Extensions -->
+                <div class="jazz-analysis" id="jazz-analysis" style="display:none">
+                    <h3>Jazz Analysis</h3>
+                    <div class="jazz-details">
+                        <div class="jazz-item">
+                            <label>Extensions:</label>
+                            <span id="extensions">-</span>
+                        </div>
+                        <div class="jazz-item">
+                            <label>Alterations:</label>
+                            <span id="alterations">-</span>
+                        </div>
+                        <div class="jazz-item">
+                            <label>Tonal Ambiguity:</label>
+                            <span id="tonal-ambiguity">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alternatives -->
+                <div class="alternatives" id="alternatives-section">
+                    <h3>Alternative Interpretations</h3>
+                    <div id="alternatives-list"></div>
+                </div>
+            </section>
+
+            <!-- Tools Section -->
+            <section class="tools-section">
+                <h2>Tools</h2>
+                <div class="tools-grid">
+                    <!-- MIDI Input -->
+                    <div class="tool-card">
+                        <h3>MIDI Input</h3>
+                        <input type="text" id="midi-input" placeholder="60,64,67">
+                        <button onclick="analyzeMidiInput()">Analyze</button>
+                    </div>
+
+                    <!-- Transpose -->
+                    <div class="tool-card">
+                        <h3>Transpose</h3>
+                        <input type="range" id="transpose-slider" min="-12" max="12" value="0">
+                        <span id="transpose-value">0</span>
+                        <button onclick="transposeChord()">Apply</button>
+                    </div>
+
+                    <!-- Chord Builder -->
+                    <div class="tool-card">
+                        <h3>Chord Builder</h3>
+                        <select id="root-select">
+                            <option value="60">C</option>
+                            <option value="61">C#</option>
+                            <option value="62">D</option>
+                            <option value="63">Eb</option>
+                            <option value="64">E</option>
+                            <option value="65">F</option>
+                            <option value="66">F#</option>
+                            <option value="67">G</option>
+                            <option value="68">Ab</option>
+                            <option value="69">A</option>
+                            <option value="70">Bb</option>
+                            <option value="71">B</option>
+                        </select>
+                        <select id="chord-type">
+                            <option value="major">Major</option>
+                            <option value="minor">Minor</option>
+                            <option value="7">7th</option>
+                            <option value="maj7">Maj7</option>
+                            <option value="m7">m7</option>
+                            <option value="9">9th</option>
+                            <option value="11">11th</option>
+                            <option value="13">13th</option>
+                            <option value="dim">Diminished</option>
+                            <option value="aug">Augmented</option>
+                            <option value="sus4">Sus4</option>
+                            <option value="sus2">Sus2</option>
+                        </select>
+                        <button onclick="buildChord()">Build</button>
+                    </div>
+
+                    <!-- Suggestions -->
+                    <div class="tool-card">
+                        <h3>Next Chord Suggestions</h3>
+                        <div id="suggestions-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Benchmark -->
+            <section class="benchmark-section">
+                <h2>Performance Benchmark</h2>
+                <button onclick="runBenchmark()" class="benchmark-btn">Run Benchmark</button>
+                <div id="benchmark-results"></div>
+            </section>
+
+            <!-- Examples -->
+            <section class="examples-section">
+                <h2>Quick Examples</h2>
+                <div class="examples-grid">
+                    <button class="example-btn" onclick="loadExample([60,64,67])">C Major</button>
+                    <button class="example-btn" onclick="loadExample([60,63,67])">C Minor</button>
+                    <button class="example-btn" onclick="loadExample([60,64,67,70])">C7</button>
+                    <button class="example-btn" onclick="loadExample([60,64,67,71])">Cmaj7</button>
+                    <button class="example-btn" onclick="loadExample([60,64,67,70,62])">C9</button>
+                    <button class="example-btn" onclick="loadExample([60,64,67,70,62,65])">C11</button>
+                    <button class="example-btn" onclick="loadExample([60,64,66,70])">C7b5</button>
+                    <button class="example-btn" onclick="loadExample([60,65,67])">Csus4</button>
+                    <button class="example-btn" onclick="loadExample([64,67,72])">C/E</button>
+                    <button class="example-btn" onclick="loadExample([60,65,70,75])">Quartal</button>
+                    <button class="example-btn" onclick="loadExample([60,64,67,74,78,81])">Polychord</button>
+                    <button class="example-btn" onclick="loadExample([64,67,71])">Rootless</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>ChordLock v1.0.0 | © 2024 Leo Kuroshita | 
+                <a href="https://github.com/kurogedelic/chordlock" target="_blank">GitHub</a>
+            </p>
+            <p class="tech-info">Powered by WebAssembly | 500+ chord patterns | 0.749μs recognition speed</p>
+        </footer>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Loading ChordLock Engine...</p>
+    </div>
+
+    <script src="chordlock_wasm.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

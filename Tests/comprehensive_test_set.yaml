@@ -1,0 +1,328 @@
+# Comprehensive Chord Test Dataset
+# Based on web research from CHORDONOMICON, jazz theory, and chord progression databases
+# Format: MIDI notes -> expected chord name
+
+test_cases:
+  # Basic Triads - Should achieve 100% accuracy
+  basic_triads:
+    - notes: [60, 64, 67]
+      expected: "C"
+      category: "basic"
+      description: "C major triad"
+      confidence_threshold: 0.95
+    
+    - notes: [60, 63, 67]  
+      expected: "Cm"
+      category: "basic"
+      description: "C minor triad"
+      confidence_threshold: 0.95
+    
+    - notes: [60, 63, 66]
+      expected: "Cdim"
+      category: "basic" 
+      description: "C diminished triad"
+      confidence_threshold: 0.90
+      
+    - notes: [60, 64, 68]
+      expected: "Caug"
+      category: "basic"
+      description: "C augmented triad"
+      confidence_threshold: 0.90
+      
+    - notes: [60, 65, 67]
+      expected: "Csus4"
+      category: "basic"
+      description: "C suspended 4th"
+      confidence_threshold: 0.90
+      
+    - notes: [60, 62, 67]
+      expected: "Csus2"
+      category: "basic"
+      description: "C suspended 2nd"
+      confidence_threshold: 0.90
+
+  # Seventh Chords - High priority patterns from jazz databases
+  seventh_chords:
+    - notes: [60, 64, 67, 70]
+      expected: "C7"
+      category: "seventh"
+      description: "C dominant 7th"
+      confidence_threshold: 0.95
+      
+    - notes: [60, 64, 67, 71]
+      expected: "CM7"
+      category: "seventh"
+      description: "C major 7th"
+      confidence_threshold: 0.95
+      
+    - notes: [60, 63, 67, 70]
+      expected: "Cm7"
+      category: "seventh"
+      description: "C minor 7th"
+      confidence_threshold: 0.95
+      
+    - notes: [60, 63, 66, 69]
+      expected: "Cdim7"
+      category: "seventh"
+      description: "C diminished 7th"
+      confidence_threshold: 0.90
+      
+    - notes: [60, 63, 66, 70]
+      expected: "Cm7b5"
+      category: "seventh"
+      description: "C half-diminished 7th"
+      confidence_threshold: 0.90
+      
+    - notes: [60, 63, 67, 71]
+      expected: "CmM7"
+      category: "seventh"
+      description: "C minor-major 7th"
+      confidence_threshold: 0.85
+
+  # Extended Chords - Based on jazz voicing research
+  extended_chords:
+    - notes: [60, 64, 67, 70, 74]
+      expected: "C9"
+      category: "extended"
+      description: "C dominant 9th"
+      confidence_threshold: 0.85
+      
+    - notes: [60, 64, 67, 71, 74]
+      expected: "CM9"
+      category: "extended"
+      description: "C major 9th" 
+      confidence_threshold: 0.85
+      
+    - notes: [60, 63, 67, 70, 74]
+      expected: "Cm9"
+      category: "extended"
+      description: "C minor 9th"
+      confidence_threshold: 0.85
+      
+    - notes: [60, 64, 67, 70, 77]
+      expected: "C11"
+      category: "extended"
+      description: "C dominant 11th"
+      confidence_threshold: 0.80
+      
+    - notes: [60, 64, 67, 70, 81]
+      expected: "C13"
+      category: "extended"
+      description: "C dominant 13th"
+      confidence_threshold: 0.80
+
+  # Inversions - Critical for chord recognition
+  inversions:
+    - notes: [64, 67, 72]
+      expected: "C/E"
+      category: "inversion"
+      description: "C major 1st inversion"
+      confidence_threshold: 0.80
+      
+    - notes: [67, 72, 76]
+      expected: "C/G"
+      category: "inversion"
+      description: "C major 2nd inversion"
+      confidence_threshold: 0.80
+      
+    - notes: [70, 72, 76, 79]
+      expected: "C7/Bb"
+      category: "inversion"
+      description: "C7 3rd inversion"
+      confidence_threshold: 0.75
+
+  # Altered Dominant Chords - Advanced jazz patterns
+  altered_dominants:
+    - notes: [60, 64, 67, 70, 73]
+      expected: "C7b9"
+      category: "altered"
+      description: "C dominant 7th flat 9"
+      confidence_threshold: 0.75
+      
+    - notes: [60, 64, 67, 70, 75]
+      expected: "C7#9"
+      category: "altered"
+      description: "C dominant 7th sharp 9"
+      confidence_threshold: 0.75
+      
+    - notes: [60, 64, 66, 70]
+      expected: "C7b5"
+      category: "altered"
+      description: "C dominant 7th flat 5"
+      confidence_threshold: 0.75
+      
+    - notes: [60, 64, 68, 70]
+      expected: "C7#5"
+      category: "altered"
+      description: "C dominant 7th sharp 5"
+      confidence_threshold: 0.75
+      
+    - notes: [60, 64, 67, 70, 78]
+      expected: "C7#11"
+      category: "altered"
+      description: "C dominant 7th sharp 11"
+      confidence_threshold: 0.70
+
+  # Add Chords - Common in pop/rock
+  add_chords:
+    - notes: [60, 62, 64, 67]
+      expected: "Cadd9"
+      category: "add"
+      description: "C major add 9"
+      confidence_threshold: 0.80
+      
+    - notes: [60, 64, 65, 67]
+      expected: "Cadd11"
+      category: "add"
+      description: "C major add 11"
+      confidence_threshold: 0.75
+      
+    - notes: [60, 64, 67, 69]
+      expected: "C6"
+      category: "add"
+      description: "C major 6th"
+      confidence_threshold: 0.85
+
+  # Wide Voicings - Spanning multiple octaves
+  wide_voicings:
+    - notes: [48, 64, 79]
+      expected: "C"
+      category: "wide"
+      description: "C major wide voicing"
+      confidence_threshold: 0.70
+      
+    - notes: [48, 63, 79]
+      expected: "Cm"
+      category: "wide"
+      description: "C minor wide voicing"
+      confidence_threshold: 0.70
+      
+    - notes: [48, 64, 79, 82]
+      expected: "C7"
+      category: "wide"
+      description: "C7 wide voicing"
+      confidence_threshold: 0.65
+
+  # Quartal/Quintal Harmonies - Modern jazz
+  quartal_chords:
+    - notes: [60, 65, 70]
+      expected: "quartal"
+      category: "modern"
+      description: "Quartal triad"
+      confidence_threshold: 0.60
+      
+    - notes: [60, 65, 70, 75]
+      expected: "quartal"
+      category: "modern"
+      description: "Quartal tetrachord"
+      confidence_threshold: 0.60
+
+  # Polychords - Very advanced
+  polychords:
+    - notes: [60, 64, 67, 70, 74, 77]
+      expected: "polychord"
+      category: "advanced"
+      description: "C major over D"
+      confidence_threshold: 0.50
+      
+    - notes: [60, 63, 67, 69, 72, 76]
+      expected: "polychord"
+      category: "advanced"
+      description: "Complex polychord"
+      confidence_threshold: 0.50
+
+  # Common Pop/Rock Progressions (from CHORDONOMICON research)
+  pop_progressions:
+    - notes: [60, 64, 67]  # I
+      expected: "C"
+      category: "progression"
+      description: "I chord in C major"
+      confidence_threshold: 0.95
+      
+    - notes: [67, 71, 74]  # V
+      expected: "G"
+      category: "progression" 
+      description: "V chord in C major"
+      confidence_threshold: 0.95
+      
+    - notes: [57, 60, 64]  # vi
+      expected: "Am"
+      category: "progression"
+      description: "vi chord in C major"
+      confidence_threshold: 0.95
+      
+    - notes: [65, 69, 72]  # IV
+      expected: "F"
+      category: "progression"
+      description: "IV chord in C major"
+      confidence_threshold: 0.95
+
+  # Jazz ii-V-I Progressions
+  jazz_progressions:
+    - notes: [62, 65, 69, 72]  # ii7
+      expected: "Dm7"
+      category: "jazz"
+      description: "ii7 in C major"
+      confidence_threshold: 0.90
+      
+    - notes: [67, 71, 74, 77]  # V7
+      expected: "G7"
+      category: "jazz"
+      description: "V7 in C major"
+      confidence_threshold: 0.90
+      
+    - notes: [60, 64, 67, 71]  # IM7
+      expected: "CM7"
+      category: "jazz"
+      description: "IM7 in C major"
+      confidence_threshold: 0.90
+
+  # Edge Cases - Challenging patterns
+  edge_cases:
+    - notes: [60, 61, 62]
+      expected: "cluster"
+      category: "edge"
+      description: "Chromatic cluster"
+      confidence_threshold: 0.40
+      
+    - notes: [60]
+      expected: "single-note"
+      category: "edge"
+      description: "Single note"
+      confidence_threshold: 0.30
+      
+    - notes: [60, 72]
+      expected: "octave"
+      category: "edge"
+      description: "Octave interval"
+      confidence_threshold: 0.50
+      
+    - notes: [60, 66]
+      expected: "tritone"
+      category: "edge"
+      description: "Tritone interval"
+      confidence_threshold: 0.60
+
+# Test Statistics Expected
+target_accuracy:
+  basic_triads: 100%
+  seventh_chords: 95%
+  extended_chords: 85%
+  inversions: 80%
+  altered_dominants: 75%
+  add_chords: 80%
+  wide_voicings: 70%
+  quartal_chords: 60%
+  polychords: 50%
+  pop_progressions: 95%
+  jazz_progressions: 90%
+  edge_cases: 40%
+  
+overall_target: 90%
+
+# Performance Benchmarks
+performance_targets:
+  average_processing_time: "< 10μs"
+  95th_percentile: "< 25μs"
+  cache_hit_rate: "> 80%"
+  memory_usage: "< 1MB"

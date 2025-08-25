@@ -1,0 +1,156 @@
+# Music Theory Chord Dictionary
+# Format: [intervals in semitones]: chord-name
+
+# Two-note structures
+[0,2]: sus2-dyad
+[0,3]: minor-third
+[0,4]: major-third
+[0,5]: perfect-fourth
+[0,6]: tritone
+[0,7]: power-chord
+[0,8]: minor-sixth
+[0,9]: major-sixth
+[0,10]: minor-seventh
+[0,11]: major-seventh
+
+# Three-note structures
+[0,1,4]: phrygian-trichord
+[0,1,5]: hijaz-fragment
+[0,1,2]: chromatic-3-cluster
+[0,2,3]: chromatic-cluster
+[0,2,4]: whole-tone-cluster
+[0,2,5]: pentatonic-cluster
+[0,2,6]: lydian-trichord
+[0,2,7]: sus2-triad
+[0,3,5]: minor-cluster
+[0,3,6]: diminished-triad
+[0,3,7]: minor-triad
+[0,3,8]: minor-sharp5
+[0,4,6]: major-flat5
+[0,4,7]: major-triad
+[0,4,8]: augmented-triad
+[0,4,10]: italian-sixth
+[0,5,7]: sus4-triad
+[0,5,9]: quartal-sus
+[0,5,10]: quartal-triad
+[0,7,12]: power-chord-octave
+
+# Modern contemporary harmony
+[0,1,5]: microtonal-cluster
+[0,2,6]: quartal-modern
+[0,6,11]: tritone-major7
+
+# Four-note structures
+[0,1,4,5]: hijaz-tetrachord
+[0,1,5,8]: phrygian-b2-chord
+[0,2,3,5]: rast-tetrachord
+[0,2,5,7]: pentatonic-seventh
+[0,2,6,9]: major-add9-slash
+[0,2,6,10]: french-sixth
+[0,2,7,10]: 7sus2
+
+# Contemporary four-note harmonies
+[0,1,6,7]: semitone-tritone-cluster
+[0,2,5,8]: minor-major-quartal
+[0,3,6,11]: diminished-major7
+[0,1,7,8]: chromatic-fifth-cluster
+[0,6,7,11]: tritone-fifth-major7
+[0,3,5,7]: minor-pentatonic
+[0,3,6,9]: diminished-seventh
+[0,3,6,10]: half-diminished-seventh
+[0,3,7,10]: minor-seventh
+[0,3,7,11]: minor-major-seventh
+[0,2,3,7]: minor-add9
+[0,3,8,10]: minor-seventh-sharp5
+[0,4,6,10]: dominant-seventh-flat5
+[0,4,6,11]: major-seventh-flat5
+[0,4,7,9]: major-sixth
+[0,4,7,10]: dominant-seventh
+[0,4,7,11]: major-seventh
+[0,2,4,7]: add9
+[0,4,5,7]: add11
+[0,4,8,10]: dominant-seventh-sharp5
+[0,4,8,11]: major-seventh-sharp5
+[0,5,6,10]: quartal-augmented
+[0,5,7,10]: 7sus4
+[0,5,9,12]: quartal-ninth
+[0,5,10,15]: quartal-fourth
+
+# Five-note structures
+[0,1,4,5,7]: hijaz-pentachord
+[0,2,5,7,9]: pentatonic-scale
+[0,3,5,6,7]: blues-pentachord
+[0,3,5,7,10]: minor-pentatonic-seventh
+[0,3,6,7,10]: blues-scale-fragment
+[0,3,6,10,14]: minor-ninth-flat5
+[0,2,3,7,10]: minor-ninth
+[0,4,6,10,1]: dominant-seventh-flat5-flat9
+[0,4,7,9,14]: six-nine
+[0,1,4,7,10]: dominant-seventh-flat9
+[0,2,4,7,10]: dominant-ninth
+[0,3,4,7,10]: dominant-seventh-sharp9
+[0,4,6,7,10]: dominant-seventh-sharp11
+[0,4,7,8,10]: dominant-seventh-flat13
+[0,2,4,7,11]: major-ninth
+[0,4,7,11,18]: major-seventh-sharp11
+[0,3,4,8,10]: dominant-seventh-sharp5-sharp9
+[0,5,7,10,14]: 9sus4
+[0,5,10,15,19]: so-what-chord
+[0,5,10,15,20]: quartal-fifth
+
+# Six-note structures
+[0,2,4,6,8,10]: whole-tone-scale
+[0,3,5,6,7,10]: blues-scale
+[0,3,6,10,14,17]: minor-eleventh-flat5
+[0,2,3,5,7,10]: minor-eleventh
+[0,2,3,7,9,10]: minor-thirteenth
+[0,1,4,6,7,10]: dominant-seventh-flat9-sharp11
+[0,2,4,5,7,10]: dominant-eleventh
+[0,4,5,7,10]: dominant-eleventh-standard
+[0,2,4,7,9,10]: dominant-thirteenth
+[0,4,7,9,10]: dominant-thirteenth-omit9
+[0,3,4,7,8,10]: dominant-seventh-sharp9-flat13
+[0,2,4,5,7,11]: major-eleventh
+[0,2,4,7,9,11]: major-thirteenth
+[0,2,5,7,9,10]: 13sus4
+
+# Advanced contemporary six-note structures
+[0,1,5,6,7,11]: super-locrian-hexachord
+[0,2,4,6,9,11]: lydian-augmented-sixth
+[0,1,3,5,8,10]: octatonic-fragment
+
+# Seven-note structures
+[0,1,3,4,6,8,10]: locrian-scale
+[0,1,3,5,6,8,10]: phrygian-scale
+[0,1,3,5,7,8,10]: pelog-approximation
+[0,1,4,5,7,8,11]: hijaz-scale
+[0,2,3,5,7,8,10]: dorian-scale
+[0,2,3,5,7,9,10]: natural-minor-scale
+[0,2,4,5,7,9,10]: mixolydian-scale
+[0,2,4,5,7,9,11]: major-scale
+[0,2,4,6,7,9,11]: lydian-scale
+
+# Extended and complex structures
+[0,1,2,3,4,5,6,7,8,9,10,11]: chromatic-scale
+[0,2,4,6,8,10,12,14,16,18,20,22]: whole-tone-extended
+[0,3,5,6,7,9,10,12,15]: bebop-scale
+[0,3,5,7,10,12,15,17,19]: extended-blues
+[0,4,7,10,13,16,18,20,23]: altered-scale
+
+# Critical altered chord patterns for Section 6 improvement
+[0,1,4,6,7,10]: dominant-seventh-flat9-sharp11
+[0,1,4,7,8,10]: dominant-seventh-flat9-sharp13
+[0,1,3,4,7,10]: dominant-seventh-flat9-sharp9
+[0,3,4,6,7,10]: dominant-seventh-sharp9-sharp11
+[0,3,4,7,8,10]: dominant-seventh-sharp9-sharp13
+[0,1,4,6,10]: dominant-seventh-flat5-flat9-sharp11
+[0,1,4,8,10]: dominant-seventh-sharp5-flat9-sharp11
+[0,3,4,6,10]: dominant-seventh-flat5-sharp9-sharp11
+
+# Missing chord patterns found in testing
+[0,4,8,10]: dominant-seventh-sharp5
+[0,4,5,7]: add11
+[0,4,6,7,10]: dominant-seventh-sharp11-clean
+[0,4,7,10,18]: dominant-seventh-sharp11
+[0]: single-note
+[0,12]: octave

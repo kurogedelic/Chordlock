@@ -1,0 +1,199 @@
+# Extended and Advanced Chord Dictionary
+# Comprehensive collection of jazz, classical, and modern harmony
+
+# === EXTENDED JAZZ CHORDS ===
+
+# 9th Chords (complete variations)
+[0,4,7,10,2]: dominant-ninth
+[0,4,7,11,2]: major-ninth
+[0,3,7,10,2]: minor-ninth
+[0,3,6,10,2]: minor-ninth-flat5
+[0,4,8,10,2]: augmented-ninth
+[0,3,6,9,2]: diminished-ninth
+[0,4,7,10,1]: dominant-flat-ninth
+[0,4,7,10,3]: dominant-sharp-ninth
+[0,3,7,11,2]: minor-major-ninth
+
+# 11th Chords (complete variations)
+[0,4,7,10,2,5]: dominant-eleventh
+[0,4,7,11,2,5]: major-eleventh
+[0,3,7,10,2,5]: minor-eleventh
+[0,4,7,10,2,6]: dominant-sharp-eleventh
+[0,3,7,10,2,6]: minor-sharp-eleventh
+[0,3,6,10,2,5]: half-diminished-eleventh
+[0,4,7,11,2,6]: major-sharp-eleventh
+[0,3,7,11,2,5]: minor-major-eleventh
+
+# 13th Chords (complete variations)
+[0,4,7,10,2,5,9]: dominant-thirteenth
+[0,4,7,11,2,5,9]: major-thirteenth
+[0,3,7,10,2,5,9]: minor-thirteenth
+[0,4,7,10,2,5,8]: dominant-flat-thirteenth
+[0,3,7,10,2,5,8]: minor-flat-thirteenth
+[0,4,7,11,2,6,9]: major-sharp-eleventh-thirteenth
+[0,3,6,10,2,5,9]: half-diminished-thirteenth
+
+# === ALTERED DOMINANT CHORDS ===
+
+# Alt chords (all alterations)
+[0,4,6,10]: dominant-seventh-flat5
+[0,4,8,10]: dominant-seventh-sharp5
+[0,4,6,10,2]: dominant-ninth-flat5
+[0,4,8,10,2]: dominant-ninth-sharp5
+[0,4,7,10,1,6]: dominant-flat9-sharp11
+[0,4,6,10,1]: dominant-flat9-flat5
+[0,4,8,10,3]: dominant-sharp9-sharp5
+[0,4,6,10,3]: dominant-sharp9-flat5
+[0,4,6,10,1,8]: dominant-flat9-flat5-flat13
+[0,4,8,10,3,9]: dominant-sharp9-sharp5-natural13
+
+# Altered Scale Chords
+[0,1,3,4,6,8,10]: altered-scale-chord
+[0,4,6,10,1,3]: dominant-alt-chord
+[0,4,6,8,10]: dominant-sharp5-flat5
+[0,3,6,8,10]: diminished-major-seventh
+
+# === QUARTAL HARMONY ===
+
+# Pure Quartal Chords
+[0,5,10]: quartal-dyad
+[0,5,10,3]: quartal-triad
+[0,5,10,3,8]: quartal-tetrad
+[0,5,10,3,8,1]: quartal-pentad
+[0,5,10,3,8,1,6]: quartal-hexad
+
+# So What Chord (Miles Davis)
+[0,5,10,3,7]: so-what-chord
+[0,5,10,3,7,0]: so-what-voicing
+
+# Mixed Quartal-Tertian
+[0,5,10,2]: sus4-add9
+[0,5,10,7]: quartal-major
+[0,5,10,6]: quartal-diminished
+[0,5,10,8]: quartal-augmented
+
+# === MODAL INTERCHANGE CHORDS ===
+
+# Borrowed from Parallel Minor
+[0,3,7,10,5]: minor-eleven
+[0,3,6,10,5]: minor-flat5-eleven
+[0,3,8,10]: minor-augmented-seventh
+[0,1,5,8]: neapolitan-chord
+[0,1,5,8,10]: neapolitan-seventh
+
+# Borrowed from Parallel Major  
+[0,4,7,11,6]: major-sharp11
+[0,4,9,11]: major-sixth-seventh
+[0,4,7,9,2]: six-nine-chord
+[0,4,7,9,2,5]: six-nine-eleven
+
+# Modal Chords
+[0,2,5,7]: dorian-sus
+[0,1,5,7]: phrygian-chord
+[0,4,6,11]: lydian-major-seventh-sharp5
+[0,2,7,10]: mixolydian-sus
+[0,3,6,8]: aeolian-diminished
+[0,1,6,10]: locrian-major
+
+# === POLYCHORDS & SLASH CHORDS ===
+
+# Upper Structure Triads
+[0,4,7,2,6,9]: C-over-D  # C/D
+[0,4,7,5,9,0]: C-over-F  # C/F
+[0,4,7,7,11,2]: C-over-G  # C/G
+[0,3,7,4,8,11]: Cm-over-E  # Cm/E
+[0,4,7,11,3,6]: C-over-B  # C/B
+
+# Compound Chords
+[0,7,2,9]: fifth-stack
+[0,7,2,9,4]: fifth-stack-extended
+[0,2,4,7,9,11]: cluster-chord
+[0,1,2,3,4,5]: chromatic-cluster
+
+# === CONTEMPORARY & EXPERIMENTAL ===
+
+# Neo-Riemannian
+[0,3,7,11]: minor-major-seventh
+[0,4,8,11]: augmented-major-seventh
+[0,3,6,11]: diminished-major-seventh
+[0,4,7,10,3,6]: dominant-sharp9-sharp11
+
+# Messiaen Modes
+[0,2,3,5,6,8,9,11]: octatonic-chord
+[0,2,4,6,8,10]: whole-tone-chord
+[0,1,4,5,6,9,10,11]: messiaen-mode-3
+[0,1,2,5,6,7,8,11]: messiaen-mode-4
+
+# Mystic Chord (Scriabin)
+[0,6,10,4,9,2]: mystic-chord
+[0,6,10,4,8,2]: prometheus-chord
+
+# === JAZZ VOICINGS ===
+
+# Bill Evans Voicings
+[0,3,5,10]: rootless-minor-seventh
+[0,4,6,10]: rootless-dominant
+[0,3,5,11]: rootless-minor-major
+[0,4,6,11]: rootless-major-seventh
+
+# McCoy Tyner Voicings  
+[0,5,10,3,7,10]: tyner-quartal
+[0,7,10,3,5]: pentatonic-voicing
+
+# Kenny Barron Voicings
+[0,3,7,10,2,6]: minor-eleven-sharp
+[0,4,7,11,3,6]: major-sharp11-add9
+
+# === CLASSICAL EXTENDED HARMONY ===
+
+# Romantic Era
+[0,4,7,10,2,5,9,11]: dominant-thirteenth-add11
+[0,3,6,9,0,3]: diminished-stacked
+[0,4,8,0,4]: augmented-stacked
+[0,2,6,9]: french-sixth
+[0,2,6,10]: german-sixth
+[0,2,8]: italian-sixth
+
+# Impressionist
+[0,2,4,7,9,11]: add2-add4-add6
+[0,4,7,11,2,6,9]: major-all-extensions
+[0,2,5,7,10]: pentatonic-stack
+[0,3,5,7,10]: minor-pentatonic-stack
+
+# === MICRO-TONAL & JUST INTONATION ===
+
+# Quarter-tone chords (cents from root)
+[0,50,400,700]: quarter-tone-major
+[0,350,700]: neutral-third-triad
+[0,250,700]: sub-minor-triad
+[0,450,700]: super-major-triad
+
+# Just Intonation ratios
+[0,386,702]: just-major-triad  # 1:1, 5:4, 3:2
+[0,316,702]: just-minor-triad  # 1:1, 6:5, 3:2
+[0,386,702,969]: just-dominant-seventh  # 1:1, 5:4, 3:2, 7:4
+[0,386,702,1088]: just-major-seventh  # 1:1, 5:4, 3:2, 15:8
+
+# === WORLD MUSIC SCALES AS CHORDS ===
+
+# Arabic/Middle Eastern
+[0,1,4,5,7,8,11]: hijaz-chord
+[0,2,3,6,7,9,10]: arabic-maqam-chord
+
+# Indian Ragas
+[0,1,4,6,7,10]: raga-bhairav-chord
+[0,2,5,7,9]: raga-major-pentatonic
+
+# Japanese
+[0,1,5,7,8]: hirajoshi-chord
+[0,2,5,7,10]: yo-scale-chord
+
+# === EXTENDED TECHNIQUES ===
+
+# Harmonics-based
+[0,12,19,24]: harmonic-series-chord
+[0,12,19,24,28]: extended-harmonic-chord
+
+# Prepared Piano / Extended
+[0,0.5,7,7.5]: detuned-unison-fifth
+[0,11.5,23.5]: micro-octaves

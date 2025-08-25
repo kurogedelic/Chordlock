@@ -1,0 +1,216 @@
+# Integration Test Chord Data
+# Comprehensive test cases for integration testing
+
+# Basic triads
+basic_triads:
+  - chord: [0,4,7]
+    name: "major-triad"
+    expected_confidence: 0.95
+    notes: "C-E-G"
+  
+  - chord: [0,3,7]
+    name: "minor-triad"
+    expected_confidence: 0.95
+    notes: "C-Eb-G"
+  
+  - chord: [0,3,6]
+    name: "diminished-triad"
+    expected_confidence: 0.90
+    notes: "C-Eb-Gb"
+  
+  - chord: [0,4,8]
+    name: "augmented-triad"
+    expected_confidence: 0.90
+    notes: "C-E-G#"
+
+# Seventh chords
+seventh_chords:
+  - chord: [0,4,7,10]
+    name: "dominant-seventh"
+    expected_confidence: 0.95
+    notes: "C-E-G-Bb"
+  
+  - chord: [0,4,7,11]
+    name: "major-seventh"
+    expected_confidence: 0.95
+    notes: "C-E-G-B"
+  
+  - chord: [0,3,7,10]
+    name: "minor-seventh"
+    expected_confidence: 0.95
+    notes: "C-Eb-G-Bb"
+  
+  - chord: [0,3,6,9]
+    name: "half-diminished-seventh"
+    expected_confidence: 0.85
+    notes: "C-Eb-Gb-A"
+
+# Extended chords (9th, 11th, 13th)
+extended_chords:
+  - chord: [0,4,7,10,2]
+    name: "dominant-ninth"
+    expected_confidence: 0.85
+    notes: "C-E-G-Bb-D"
+  
+  - chord: [0,4,7,11,2]
+    name: "major-ninth"
+    expected_confidence: 0.85
+    notes: "C-E-G-B-D"
+  
+  - chord: [0,3,7,10,2]
+    name: "minor-ninth"
+    expected_confidence: 0.85
+    notes: "C-Eb-G-Bb-D"
+  
+  - chord: [0,4,7,10,2,5]
+    name: "dominant-eleventh-standard"
+    expected_confidence: 0.80
+    notes: "C-E-G-Bb-D-F"
+  
+  - chord: [0,4,7,10,2,5,9]
+    name: "dominant-thirteenth"
+    expected_confidence: 0.75
+    notes: "C-E-G-Bb-D-F-A"
+
+# Suspended chords
+suspended_chords:
+  - chord: [0,5,7]
+    name: "sus4-triad"
+    expected_confidence: 0.90
+    notes: "C-F-G"
+  
+  - chord: [0,2,7]
+    name: "sus2-triad"
+    expected_confidence: 0.90
+    notes: "C-D-G"
+  
+  - chord: [0,5,7,10]
+    name: "sus4-seventh"
+    expected_confidence: 0.85
+    notes: "C-F-G-Bb"
+
+# Jazz chords
+jazz_chords:
+  - chord: [0,4,7,9]
+    name: "six-nine" # If implemented
+    expected_confidence: 0.80
+    notes: "C-E-G-A-D"
+  
+  - chord: [0,4,7,10,1]
+    name: "dominant-flat9" # If implemented
+    expected_confidence: 0.75
+    notes: "C-E-G-Bb-Db"
+  
+  - chord: [0,4,7,10,3]
+    name: "dominant-sharp9" # If implemented
+    expected_confidence: 0.75
+    notes: "C-E-G-Bb-Eb"
+
+# Inversion test cases
+inversions:
+  - chord: [4,7,0]  # First inversion C major
+    root_chord: "major-triad"
+    inversion_type: "first"
+    bass_note: 4
+  
+  - chord: [7,0,4]  # Second inversion C major
+    root_chord: "major-triad"
+    inversion_type: "second"
+    bass_note: 7
+  
+  - chord: [4,7,10,0]  # First inversion C7
+    root_chord: "dominant-seventh"
+    inversion_type: "first"
+    bass_note: 4
+
+# Complex voicings
+complex_voicings:
+  - chord: [0,16,19,22]  # Wide C major (C-E-G spread over 2 octaves)
+    name: "major-triad"
+    expected_confidence: 0.80
+    description: "Wide voicing"
+  
+  - chord: [0,7,16,19]  # Quartal voicing
+    name: "quartal" # If implemented
+    expected_confidence: 0.70
+    description: "Quartal harmony"
+
+# Error test cases
+error_cases:
+  - chord: []
+    error_type: "empty_input"
+    description: "Empty chord array"
+  
+  - chord: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    error_type: "too_many_notes"
+    description: "Excessive number of notes"
+  
+  - chord: [-1,128,200]
+    error_type: "invalid_midi_note"
+    description: "Invalid MIDI note numbers"
+
+# Performance test cases
+performance_benchmarks:
+  - chord: [0,4,7]
+    max_time_us: 15.0
+    description: "Simple triad - fastest"
+  
+  - chord: [0,4,7,10]
+    max_time_us: 20.0
+    description: "Seventh chord"
+  
+  - chord: [0,4,7,10,2]
+    max_time_us: 25.0
+    description: "Ninth chord"
+  
+  - chord: [0,4,7,10,2,5]
+    max_time_us: 30.0
+    description: "Eleventh chord"
+  
+  - chord: [0,4,7,10,2,5,9]
+    max_time_us: 35.0
+    description: "Thirteenth chord - most complex"
+
+# Batch processing test sequences
+chord_progressions:
+  - name: "I-IV-V-I in C major"
+    chords:
+      - [0,4,7]     # C major
+      - [5,9,0]     # F major
+      - [7,11,2]    # G major  
+      - [0,4,7]     # C major
+  
+  - name: "ii-V-I in C major"
+    chords:
+      - [2,5,9,0]   # Dm7
+      - [7,11,2,5]  # G7
+      - [0,4,7,11]  # CM7
+  
+  - name: "Circle of fifths"
+    chords:
+      - [0,4,7]     # C
+      - [7,11,2]    # G
+      - [2,6,9]     # D
+      - [9,1,4]     # A
+      - [4,8,11]    # E
+      - [11,3,6]    # B
+
+# Memory stress test patterns
+memory_stress_patterns:
+  - pattern_type: "chromatic_triads"
+    description: "All 12 major triads chromatically"
+    generate_all_keys: true
+    base_chord: [0,4,7]
+  
+  - pattern_type: "chromatic_sevenths"
+    description: "All 12 dominant sevenths chromatically"
+    generate_all_keys: true
+    base_chord: [0,4,7,10]
+  
+  - pattern_type: "complex_extensions"
+    description: "Complex extended chords for memory testing"
+    chords:
+      - [0,4,7,10,2,5,9]     # C13
+      - [0,3,7,10,2,5,9]     # Cm13
+      - [0,4,7,11,2,5,9]     # CM13
+      - [0,4,7,10,1,5,8]     # C7alt

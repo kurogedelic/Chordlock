@@ -1,0 +1,29 @@
+# Test chord dictionary for unit tests
+# Simplified set for testing purposes
+
+# Basic triads
+[0,4,7]: major-triad
+[0,3,7]: minor-triad
+[0,3,6]: diminished-triad
+[0,4,8]: augmented-triad
+
+# Suspended chords
+[0,5,7]: sus4-triad
+[0,2,7]: sus2-triad
+
+# Seventh chords
+[0,4,7,10]: dominant-seventh
+[0,4,7,11]: major-seventh
+[0,3,7,10]: minor-seventh
+[0,3,6,9]: diminished-seventh
+[0,3,6,10]: half-diminished-seventh
+
+# Extended chords
+[0,4,7,10,14]: dominant-ninth
+[0,4,7,11,14]: major-ninth
+[0,3,7,10,14]: minor-ninth
+
+# Test edge cases
+[0]: unison
+[0,6]: tritone
+[0,1,2,3,4,5,6,7,8,9,10,11]: chromatic-scale
